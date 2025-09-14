@@ -32,6 +32,19 @@ export default function PatientAppointments({ currentUser }) {
     })();
   }, [currentUser]);
 
+  // Reload staff when hospital changes
+  useEffect(() => {
+    (async () => {
+      if (form.hospital_id) {
+        const st = await Hospital.listStaff(form.hospital_id);
+        setStaff(st);
+        // Reset selected staff when hospital changes
+        setForm((f) => ({ ...f, staff_id: '' }));
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.hospital_id]);
+
   const reloadMine = async () => {
     const list = await Appointments.mine();
     setMine(list);
@@ -153,6 +166,57 @@ export default function PatientAppointments({ currentUser }) {
             </button>
           </div>
         </form>
+      </div>
+
+      {/* Staff Directory */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Doctors List */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-800">Doctors at this hospital</h2>
+            <span className="text-sm text-gray-500">{doctors.length} total</span>
+          </div>
+          <div className="space-y-3 max-h-[360px] overflow-auto pr-1">
+            {doctors.map(d => (
+              <div key={d.id} className="flex items-center justify-between p-3 rounded-xl border border-gray-100">
+                <div>
+                  <div className="font-medium text-gray-900">{d.full_name || d.name}</div>
+                  <div className="text-xs text-gray-500">{d.email}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, staff_id: d.id, type: 'doctor' }))}
+                  className="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm"
+                >Quick Book</button>
+              </div>
+            ))}
+            {doctors.length === 0 && <div className="text-gray-500 text-sm">No doctors found for this hospital.</div>}
+          </div>
+        </div>
+
+        {/* Therapists List */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-800">Therapists at this hospital</h2>
+            <span className="text-sm text-gray-500">{therapists.length} total</span>
+          </div>
+          <div className="space-y-3 max-h-[360px] overflow-auto pr-1">
+            {therapists.map(t => (
+              <div key={t.id} className="flex items-center justify-between p-3 rounded-xl border border-gray-100">
+                <div>
+                  <div className="font-medium text-gray-900">{t.full_name || t.name}</div>
+                  <div className="text-xs text-gray-500">{t.email}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, staff_id: t.id, type: 'therapist' }))}
+                  className="px-3 py-2 rounded-lg bg-green-600 text-white text-sm"
+                >Quick Book</button>
+              </div>
+            ))}
+            {therapists.length === 0 && <div className="text-gray-500 text-sm">No therapists found for this hospital.</div>}
+          </div>
+        </div>
       </div>
 
       {/* Upcoming */}

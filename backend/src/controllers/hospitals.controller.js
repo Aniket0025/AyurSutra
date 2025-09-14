@@ -24,8 +24,9 @@ export const listHospitals = async (req, res) => {
       const hospital = await Hospital.findById(req.user.hospital_id);
       return res.json({ hospitals: hospital ? [hospital] : [] });
     }
-    // Others: none
-    return res.json({ hospitals: [] });
+    // Other roles (patient, doctor, therapist, support, guardian): allow reading all hospitals for selection/booking
+    const hospitals = await Hospital.find();
+    return res.json({ hospitals });
   } catch (e) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -34,8 +35,11 @@ export const listHospitals = async (req, res) => {
 export const listStaff = async (req, res) => {
   try {
     const { id: hospitalId } = req.params;
-    // Scope check for hospital_admin
-    if (!isSuperAdmin(req.user) && !isAdmin(req.user)) {
+    // Scope rules:
+    // - super_admin/admin: can view any hospital's staff
+    // - hospital_admin: can view only their own hospital's staff
+    // - other roles (patient/doctor/therapist/support/guardian): can view any hospital's staff (read-only for booking)
+    if (isHospitalAdmin(req.user) && !isSuperAdmin(req.user) && !isAdmin(req.user)) {
       if (!req.user.hospital_id || String(req.user.hospital_id) !== String(hospitalId)) {
         return res.status(403).json({ message: 'Forbidden' });
       }
