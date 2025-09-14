@@ -25,6 +25,7 @@ import {
 import { format } from "date-fns";
 
 export default function HospitalsPage({ currentUser }) {
+  const [effectiveUser, setEffectiveUser] = useState(currentUser);
   const [hospitals, setHospitals] = useState([]);
   const [hospitalStats, setHospitalStats] = useState({});
   const [isLoading, setIsLoading] = useState(true);
@@ -33,12 +34,31 @@ export default function HospitalsPage({ currentUser }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedHospital, setSelectedHospital] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  // Ensure we have a user even if not passed as prop (Routes children don't get cloneElement props)
+  useEffect(() => {
+    let mounted = true;
+    if (!currentUser) {
+      (async () => {
+        try {
+          const me = await User.me();
+          if (mounted) setEffectiveUser(me);
+        } catch {
+          if (mounted) setEffectiveUser(null);
+        }
+      })();
+    } else {
+      setEffectiveUser(currentUser);
+    }
+    return () => { mounted = false; };
+  }, [currentUser]);
 
   useEffect(() => {
-    if (currentUser?.role === 'super_admin') {
+    if (effectiveUser?.role === 'super_admin' || effectiveUser?.role === 'admin' || effectiveUser?.role === 'hospital_admin') {
       loadHospitals();
     }
-  }, [currentUser]);
+  }, [effectiveUser?.role]);
 
   const loadHospitals = async () => {
     setIsLoading(true);
@@ -119,14 +139,16 @@ export default function HospitalsPage({ currentUser }) {
     }
   };
 
-  const handleDeleteHospital = async (hospitalId, hospitalName) => {
-    if (!window.confirm(`Are you sure you want to delete ${hospitalName}? This action cannot be undone.`)) {
-      return;
+  const handleDeleteHospital = async (hospitalId, hospitalName, opts = {}) => {
+    const { skipConfirm = false } = opts;
+    if (!skipConfirm) {
+      const ok = window.confirm(`Are you sure you want to delete ${hospitalName}? This action cannot be undone.`);
+      if (!ok) return;
     }
-
     try {
       await Hospital.delete(hospitalId);
-      setHospitals(hospitals.filter(h => h.id !== hospitalId));
+      // Reload list from server to avoid any stale state
+      await loadHospitals();
       window.showNotification?.({
         type: 'success',
         title: 'Hospital Deleted',
@@ -134,13 +156,14 @@ export default function HospitalsPage({ currentUser }) {
         autoClose: true
       });
     } catch (error) {
-      console.error("Error deleting hospital:", error);
+      console.error('Error deleting hospital:', error);
       window.showNotification?.({
         type: 'error',
-        title: 'Error',
-        message: 'Failed to delete hospital. Please try again.',
+        title: 'Delete failed',
+        message: error?.details?.message || error?.message || 'Failed to delete hospital. Please try again.',
         autoClose: true
       });
+      throw error;
     }
   };
 
@@ -252,7 +275,7 @@ export default function HospitalsPage({ currentUser }) {
         <div className="flex items-center justify-between text-sm text-gray-500">
           <div className="flex items-center gap-2">
             <Mail className="w-4 h-4" />
-            <span>{hospital.contact_email}</span>
+            <span>{hospital.email || '—'}</span>
           </div>
           <div className="text-xs">
             Added {hospital.created_date ? format(new Date(hospital.created_date), 'MMM dd, yyyy') : 'Recently'}
@@ -262,12 +285,17 @@ export default function HospitalsPage({ currentUser }) {
     );
   };
 
-  if (!currentUser || currentUser.role !== 'super_admin') {
+  if (effectiveUser === undefined) {
+    return (
+      <div className="p-8 text-center text-gray-500">Loading...</div>
+    );
+  }
+  if (!effectiveUser || !['super_admin','admin','hospital_admin'].includes(effectiveUser.role)) {
     return (
       <div className="p-8 text-center">
         <Building className="w-16 h-16 text-gray-300 mx-auto mb-4" />
         <h2 className="text-xl font-bold text-gray-500 mb-2">Access Denied</h2>
-        <p className="text-gray-400">Only Super Admins can manage hospitals.</p>
+        <p className="text-gray-400">Only Admins can manage hospitals.</p>
       </div>
     );
   }
@@ -304,7 +332,7 @@ export default function HospitalsPage({ currentUser }) {
           className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-green-600 text-white px-6 py-3 rounded-2xl hover:shadow-lg transition-all duration-300"
         >
           <Plus className="w-5 h-5" />
-          Add Hospital
+          Assign Hospital
         </button>
       </div>
 
@@ -416,6 +444,248 @@ export default function HospitalsPage({ currentUser }) {
           </p>
         </div>
       )}
+
+      {/* Assign/Add Hospital Modal */}
+      <AnimatePresence>
+        {showAddModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+            onClick={() => setShowAddModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 10, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.95, y: 10, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+              className="w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-green-600 text-white flex items-center justify-center">
+                    <Building className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Assign Hospital</h3>
+                    <p className="text-sm text-gray-500">Create a hospital record and assign it to the system</p>
+                  </div>
+                </div>
+                <button className="text-gray-400 hover:text-gray-600" onClick={() => setShowAddModal(false)}>✕</button>
+              </div>
+
+              <HospitalForm
+                onSubmit={async (data) => { await handleAddHospital(data); }}
+                onCancel={() => setShowAddModal(false)}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Details Modal */}
+      <AnimatePresence>
+        {showDetailsModal && selectedHospital && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+            onClick={() => { setSelectedHospital(null); setShowDetailsModal(false); setConfirmingDelete(false); }}
+          >
+            <motion.div
+              initial={{ scale: 0.96, y: 8, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.96, y: 8, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 22 }}
+              className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-green-600 text-white flex items-center justify-center">
+                    <Building className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Hospital Details</h3>
+                    <p className="text-sm text-gray-500">View hospital information</p>
+                  </div>
+                </div>
+                <button type="button" className="text-gray-400 hover:text-gray-600" onClick={() => { setSelectedHospital(null); setShowDetailsModal(false); setConfirmingDelete(false); }}>✕</button>
+              </div>
+
+              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <div className="text-gray-500">Name</div>
+                  <div className="font-medium text-gray-900">{selectedHospital.name}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Email</div>
+                  <div className="font-medium text-gray-900">{selectedHospital.email || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Phone</div>
+                  <div className="font-medium text-gray-900">{selectedHospital.phone || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Address</div>
+                  <div className="font-medium text-gray-900">{selectedHospital.address || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">City</div>
+                  <div className="font-medium text-gray-900">{selectedHospital.city || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-gray-500">State</div>
+                  <div className="font-medium text-gray-900">{selectedHospital.state || '—'}</div>
+                </div>
+              </div>
+
+              <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between gap-3">
+                {confirmingDelete ? (
+                  <div className="text-sm text-red-600">Are you sure you want to delete this hospital? This action cannot be undone.</div>
+                ) : <div />}
+                <div className="flex items-center gap-3">
+                  {!confirmingDelete && (
+                    <button
+                      type="button"
+                      className="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50"
+                      onClick={() => { setSelectedHospital(null); setShowDetailsModal(false); setConfirmingDelete(false); }}
+                    >Close</button>
+                  )}
+                  {confirmingDelete ? (
+                    <>
+                      <button
+                        type="button"
+                        className="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50"
+                        onClick={() => setConfirmingDelete(false)}
+                      >Cancel</button>
+                      <button
+                        type="button"
+                        className="px-4 py-2 rounded-xl text-white bg-red-600 hover:bg-red-700"
+                        onClick={async () => {
+                          try {
+                            await handleDeleteHospital(selectedHospital.id, selectedHospital.name, { skipConfirm: true });
+                          } finally {
+                            setSelectedHospital(null);
+                            setShowDetailsModal(false);
+                            setConfirmingDelete(false);
+                          }
+                        }}
+                      >Confirm Delete</button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      className="px-4 py-2 rounded-xl text-white bg-red-600 hover:bg-red-700"
+                      onClick={() => setConfirmingDelete(true)}
+                    >Delete</button>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+function HospitalForm({ onSubmit, onCancel }) {
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    state: '',
+    admin_email: '',
+    admin_password: ''
+  });
+  const [saving, setSaving] = useState(false);
+
+  const update = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!form.name?.trim()) {
+      window.showNotification?.({ type: 'error', title: 'Validation', message: 'Hospital Name is required' });
+      return;
+    }
+    if (form.admin_email && !form.admin_password) {
+      window.showNotification?.({ type: 'error', title: 'Validation', message: 'Please enter a password for the hospital admin' });
+      return;
+    }
+    if (form.admin_password && String(form.admin_password).length < 6) {
+      window.showNotification?.({ type: 'error', title: 'Validation', message: 'Admin password must be at least 6 characters' });
+      return;
+    }
+    setSaving(true);
+    try {
+      await onSubmit({
+        name: form.name.trim(),
+        email: form.email?.trim() || '',
+        phone: form.phone?.trim() || '',
+        address: form.address?.trim() || '',
+        city: form.city?.trim() || '',
+        state: form.state?.trim() || '',
+        admin_email: form.admin_email?.trim() || undefined,
+        admin_password: form.admin_password || undefined,
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form onSubmit={submit} className="p-6 space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Hospital Name</label>
+          <input name="name" value={form.name} onChange={update} required className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <input name="email" type="email" value={form.email} onChange={update} className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+          <input name="phone" value={form.phone} onChange={update} className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+          <input name="address" value={form.address} onChange={update} className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+          <input name="city" value={form.city} onChange={update} className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+          <input name="state" value={form.state} onChange={update} className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Hospital Admin Email</label>
+          <input name="admin_email" type="email" value={form.admin_email} onChange={update} placeholder="admin@example.com" className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Hospital Admin Password</label>
+          <input name="admin_password" type="password" value={form.admin_password} onChange={update} placeholder="••••••" className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+        </div>
+      </div>
+      <div className="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
+        <button type="button" className="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50" onClick={(e) => { e.preventDefault(); onCancel?.(); }}>
+          Cancel
+        </button>
+        <button type="submit" disabled={saving} className="px-5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-green-600 text-white hover:opacity-95 disabled:opacity-60">
+          {saving ? 'Saving...' : 'Save & Assign'}
+        </button>
+      </div>
+    </form>
   );
 }

@@ -35,6 +35,7 @@ import Hospitals from "./Hospitals";
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import SignIn from "./SignIn.jsx";
 import SignUp from "./SignUp.jsx";
+import RoleGuard from "../components/auth/RoleGuard.jsx";
 
 const PAGES = {
     
@@ -94,50 +95,50 @@ function PagesContent() {
         <Layout currentPageName={currentPage}>
             <Routes>            
                 
-                    <Route path="/" element={<PatientDashboard />} />
+                    <Route path="/" element={<RoleGuard roles={[]}> <PatientDashboard /> </RoleGuard>} />
                 
                 
-                <Route path="/PatientDashboard" element={<PatientDashboard />} />
+                <Route path="/PatientDashboard" element={<RoleGuard roles={["patient","super_admin"]}> <PatientDashboard /> </RoleGuard>} />
                 {/* lowercase alias for role-based redirect */}
-                <Route path="/patientdashboard" element={<PatientDashboard />} />
+                <Route path="/patientdashboard" element={<RoleGuard roles={["patient","super_admin"]}> <PatientDashboard /> </RoleGuard>} />
                 
-                <Route path="/Dashboard" element={<Dashboard />} />
+                <Route path="/Dashboard" element={<RoleGuard roles={["super_admin","hospital_admin","admin"]}> <Dashboard /> </RoleGuard>} />
                 
-                <Route path="/Patients" element={<Patients />} />
+                <Route path="/Patients" element={<RoleGuard roles={["super_admin","hospital_admin","admin","doctor","support","guardian"]}> <Patients /> </RoleGuard>} />
                 
-                <Route path="/Settings" element={<Settings />} />
+                <Route path="/Settings" element={<RoleGuard roles={[]}> <Settings /> </RoleGuard>} />
                 
-                <Route path="/Staff" element={<Staff />} />
+                <Route path="/Staff" element={<RoleGuard roles={["super_admin","hospital_admin","admin"]}> <Staff /> </RoleGuard>} />
                 
-                <Route path="/TherapyScheduling" element={<TherapyScheduling />} />
+                <Route path="/TherapyScheduling" element={<RoleGuard roles={["super_admin","hospital_admin","admin","doctor","therapist","patient"]}> <TherapyScheduling /> </RoleGuard>} />
                 
-                <Route path="/Guardians" element={<Guardians />} />
+                <Route path="/Guardians" element={<RoleGuard roles={["super_admin","hospital_admin","admin","doctor"]}> <Guardians /> </RoleGuard>} />
                 
-                <Route path="/Notifications" element={<Notifications />} />
+                <Route path="/Notifications" element={<RoleGuard roles={[]}> <Notifications /> </RoleGuard>} />
                 
-                <Route path="/Reports" element={<Reports />} />
+                <Route path="/Reports" element={<RoleGuard roles={["super_admin","hospital_admin","admin"]}> <Reports /> </RoleGuard>} />
                 
-                <Route path="/Analytics" element={<Analytics />} />
+                <Route path="/Analytics" element={<RoleGuard roles={["super_admin","hospital_admin","admin"]}> <Analytics /> </RoleGuard>} />
                 
-                <Route path="/DoctorDashboard" element={<DoctorDashboard />} />
+                <Route path="/DoctorDashboard" element={<RoleGuard roles={["doctor","super_admin"]}> <DoctorDashboard /> </RoleGuard>} />
                 {/* lowercase alias for role-based redirect */}
-                <Route path="/doctordashboard" element={<DoctorDashboard />} />
+                <Route path="/doctordashboard" element={<RoleGuard roles={["doctor","super_admin"]}> <DoctorDashboard /> </RoleGuard>} />
                 
-                <Route path="/TherapistDashboard" element={<TherapistDashboard />} />
+                <Route path="/TherapistDashboard" element={<RoleGuard roles={["therapist","super_admin"]}> <TherapistDashboard /> </RoleGuard>} />
                 {/* lowercase alias for role-based redirect */}
-                <Route path="/therapistdashboard" element={<TherapistDashboard />} />
+                <Route path="/therapistdashboard" element={<RoleGuard roles={["therapist","super_admin"]}> <TherapistDashboard /> </RoleGuard>} />
                 
-                <Route path="/GuardianDashboard" element={<GuardianDashboard />} />
+                <Route path="/GuardianDashboard" element={<RoleGuard roles={["guardian","super_admin"]}> <GuardianDashboard /> </RoleGuard>} />
                 {/* lowercase alias for role-based redirect */}
-                <Route path="/guardiandashboard" element={<GuardianDashboard />} />
+                <Route path="/guardiandashboard" element={<RoleGuard roles={["guardian","super_admin"]}> <GuardianDashboard /> </RoleGuard>} />
                 
-                <Route path="/SupportDashboard" element={<SupportDashboard />} />
+                <Route path="/SupportDashboard" element={<RoleGuard roles={["support","super_admin"]}> <SupportDashboard /> </RoleGuard>} />
                 {/* lowercase alias for role-based redirect */}
-                <Route path="/supportdashboard" element={<SupportDashboard />} />
+                <Route path="/supportdashboard" element={<RoleGuard roles={["support","super_admin"]}> <SupportDashboard /> </RoleGuard>} />
                 
-                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/dashboard" element={<RoleGuard roles={["super_admin","hospital_admin","admin"]}> <Dashboard /> </RoleGuard>} />
                 
-                <Route path="/Hospitals" element={<Hospitals />} />
+                <Route path="/Hospitals" element={<RoleGuard roles={["super_admin","admin","hospital_admin"]}> <Hospitals /> </RoleGuard>} />
                 
             </Routes>
         </Layout>

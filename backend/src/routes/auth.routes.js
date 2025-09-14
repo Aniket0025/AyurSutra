@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
-import { signin, signup, me } from '../controllers/auth.controller.js';
+import { signin, signup, me, signout } from '../controllers/auth.controller.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
@@ -33,5 +33,6 @@ const signinValidators = [
 router.post('/signup', signupValidators, signup);
 router.post('/signin', signinValidators, signin);
 router.get('/me', requireAuth, me);
+router.post('/signout', signout);
 
 export default router;

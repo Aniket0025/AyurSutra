@@ -7,9 +7,12 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, unique: true, sparse: true, trim: true },
     role: {
       type: String,
-      enum: ['patient', 'guardian', 'doctor', 'therapist', 'support', 'hospital_admin', 'admin'],
+      enum: ['patient', 'guardian', 'doctor', 'therapist', 'support', 'hospital_admin', 'admin', 'super_admin'],
       default: 'patient',
     },
+    // Optional scoping fields
+    hospital_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', default: null },
+    has_selected_role: { type: Boolean, default: false },
     passwordHash: { type: String, required: true },
   },
   { timestamps: true }
