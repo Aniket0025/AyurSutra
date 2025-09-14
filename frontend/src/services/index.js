@@ -113,6 +113,18 @@ export const Appointments = {
     const data = await api(`/api/appointments/${id}/reschedule`, { method: 'PATCH', body: { start_time, end_time } });
     return normalizeId(data?.appointment);
   },
+  async confirm(id) {
+    const data = await api(`/api/appointments/${id}/confirm`, { method: 'POST' });
+    return normalizeId(data?.appointment);
+  },
+  async complete(id) {
+    const data = await api(`/api/appointments/${id}/complete`, { method: 'POST' });
+    return normalizeId(data?.appointment);
+  },
+  async mineForStaff() {
+    const data = await api('/api/appointments/staff/mine');
+    return (data?.appointments || []).map(normalizeId);
+  },
 };
 
 // Stubs kept for compile-time imports that may exist elsewhere

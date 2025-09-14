@@ -6,7 +6,8 @@ const isAdminRole = (user) => ['super_admin','admin','hospital_admin'].includes(
 
 export const createAppointment = async (req, res) => {
   try {
-    const user = req.user; // set by auth middleware
+    // Use req.user if provided by an upstream middleware; otherwise resolve from req.userId
+    const user = req.user || (req.userId ? await User.findById(req.userId) : null);
     const {
       hospital_id,
       staff_id,
@@ -30,7 +31,8 @@ export const createAppointment = async (req, res) => {
     }
 
     // Patient id is the authenticated user by default
-    const patient_id = user._id;
+    const patient_id = user?._id || req.userId;
+    if (!patient_id) return res.status(401).json({ message: 'Unauthorized' });
 
     // Scope: hospital must match staff
     if (String(staff.hospital_id) !== String(hospital._id)) {
@@ -55,10 +57,29 @@ export const createAppointment = async (req, res) => {
   }
 };
 
+export const listMyStaffAppointments = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.userId;
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+    // Only staff (doctor or therapist) should list theirs, but allow admin for dashboards
+    const user = req.user || await User.findById(userId);
+    const allowed = ['doctor','therapist','super_admin','admin','hospital_admin'];
+    if (!allowed.includes(user?.role)) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    const appts = await Appointment.find({ staff_id: userId }).sort({ start_time: 1 });
+    res.json({ appointments: appts });
+  } catch (e) {
+    console.error('listMyStaffAppointments error:', e);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 export const listMyAppointments = async (req, res) => {
   try {
-    const user = req.user; // patient primarily
-    const query = { patient_id: user._id };
+    const userId = req.user?._id || req.userId;
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+    const query = { patient_id: userId };
     const appts = await Appointment.find(query).sort({ start_time: 1 });
     res.json({ appointments: appts });
   } catch (e) {
@@ -72,7 +93,8 @@ export const cancelMyAppointment = async (req, res) => {
     const { id } = req.params;
     const appt = await Appointment.findById(id);
     if (!appt) return res.status(404).json({ message: 'Not found' });
-    if (String(appt.patient_id) !== String(req.user._id) && !isAdminRole(req.user)) {
+    const user = req.user || (req.userId ? await User.findById(req.userId) : null);
+    if (String(appt.patient_id) !== String(user?._id) && !isAdminRole(user)) {
       return res.status(403).json({ message: 'Forbidden' });
     }
     if (['completed','cancelled'].includes(appt.status)) {
@@ -107,6 +129,47 @@ export const rescheduleMyAppointment = async (req, res) => {
     res.json({ appointment: appt });
   } catch (e) {
     console.error('rescheduleMyAppointment error:', e);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Staff actions
+export const confirmAppointment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = req.user || (req.userId ? await User.findById(req.userId) : null);
+    if (!user) return res.status(401).json({ message: 'Unauthorized' });
+    const appt = await Appointment.findById(id);
+    if (!appt) return res.status(404).json({ message: 'Not found' });
+    const allowed = ['doctor','therapist','super_admin','admin','hospital_admin'];
+    if (!allowed.includes(user.role)) return res.status(403).json({ message: 'Forbidden' });
+    if (String(appt.staff_id) !== String(user._id) && !isAdminRole(user)) return res.status(403).json({ message: 'Forbidden' });
+    if (['completed','cancelled'].includes(appt.status)) return res.status(400).json({ message: 'Cannot confirm completed/cancelled appointment' });
+    appt.status = 'confirmed';
+    await appt.save();
+    res.json({ appointment: appt });
+  } catch (e) {
+    console.error('confirmAppointment error:', e);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const completeAppointment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = req.user || (req.userId ? await User.findById(req.userId) : null);
+    if (!user) return res.status(401).json({ message: 'Unauthorized' });
+    const appt = await Appointment.findById(id);
+    if (!appt) return res.status(404).json({ message: 'Not found' });
+    const allowed = ['doctor','therapist','super_admin','admin','hospital_admin'];
+    if (!allowed.includes(user.role)) return res.status(403).json({ message: 'Forbidden' });
+    if (String(appt.staff_id) !== String(user._id) && !isAdminRole(user)) return res.status(403).json({ message: 'Forbidden' });
+    if (appt.status === 'cancelled') return res.status(400).json({ message: 'Cannot complete a cancelled appointment' });
+    appt.status = 'completed';
+    await appt.save();
+    res.json({ appointment: appt });
+  } catch (e) {
+    console.error('completeAppointment error:', e);
     res.status(500).json({ message: 'Server error' });
   }
 };

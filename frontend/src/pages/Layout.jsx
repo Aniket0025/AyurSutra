@@ -66,10 +66,14 @@ const adminNavItems = [
 ];
 
 const doctorNavItems = [
-  { title: "Doctor Dashboard", url: "DoctorDashboard", icon: Home },
-  { title: "My Patients", url: "Patients", icon: Users },
-  { title: "Scheduling", url: "TherapyScheduling", icon: Calendar },
-  { title: "Guardians", url: "Guardians", icon: Shield }
+  { title: "Doctor's Dashboard", url: "DoctorDashboard", icon: Home },
+  { title: "Appointments Management", url: "DoctorAppointments", icon: Calendar },
+  { title: "Patient Management", url: "Patients", icon: Users },
+  { title: "Therapy Oversight", url: "TherapyScheduling", icon: Activity },
+  { title: "Notifications", url: "Notifications", icon: Bell },
+  { title: "Reports & Analytics", url: "Analytics", icon: BarChart3 },
+  { title: "Prescription & Records", url: "Reports", icon: FileText },
+  { title: "Profile & Settings", url: "Settings", icon: Settings },
 ];
 
 const therapistNavItems = [
