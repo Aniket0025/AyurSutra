@@ -1,6 +1,7 @@
 import { Appointment } from '../models/Appointment.js';
 import { User } from '../models/User.js';
 import { Hospital } from '../models/Hospital.js';
+import { Patient } from '../models/Patient.js';
 
 const isAdminRole = (user) => ['super_admin','admin','hospital_admin'].includes(user?.role);
 
@@ -49,6 +50,39 @@ export const createAppointment = async (req, res) => {
       status: 'pending',
       notes: notes || undefined,
     });
+
+    // Ensure there is a Patient record for this user in this hospital
+    try {
+      let patient = await Patient.findOne({ user_id: patient_id, hospital_id: hospital._id });
+      if (!patient) {
+        patient = await Patient.create({
+          hospital_id: hospital._id,
+          user_id: patient_id,
+          name: user?.full_name || user?.name || 'Patient',
+          email: user?.email || undefined,
+          phone: user?.phone || undefined,
+          address: user?.address || undefined,
+          medical_history: undefined,
+          metadata: {
+            assigned_doctor: staff?.full_name || staff?.name || undefined,
+          },
+        });
+      } else {
+        // Update assigned doctor metadata if missing or different
+        const assignedName = staff?.full_name || staff?.name;
+        const meta = patient.metadata || {};
+        if (assignedName && meta.assigned_doctor !== assignedName) {
+          meta.assigned_doctor = assignedName;
+          patient.metadata = meta;
+        }
+        // Ensure hospital alignment
+        if (!patient.hospital_id) patient.hospital_id = hospital._id;
+        await patient.save();
+      }
+    } catch (err) {
+      // Don't block appointment creation if patient upsert fails; just log
+      console.error('patient upsert after appointment failed:', err);
+    }
 
     res.status(201).json({ appointment: appt });
   } catch (e) {

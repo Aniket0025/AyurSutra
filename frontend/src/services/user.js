@@ -51,6 +51,16 @@ export const User = {
       return null;
     }
   },
+  async filter(query = {}) {
+    try {
+      const qs = new URLSearchParams(query).toString();
+      const { users } = await api(`/api/users${qs ? `?${qs}` : ''}`, { auth: true });
+      return Array.isArray(users) ? users.map(normalizeUser) : [];
+    } catch (e) {
+      // If users endpoint is not implemented, fail gracefully
+      return [];
+    }
+  },
   async updateMyUserData(patch) {
     // Placeholder until profile update endpoint is added
     const me = await this.me();
