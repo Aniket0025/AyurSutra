@@ -5,6 +5,7 @@ const userSchema = new mongoose.Schema(
     name: { type: String, required: true, trim: true },
     email: { type: String, unique: true, lowercase: true, trim: true },
     phone: { type: String, unique: true, sparse: true, trim: true },
+    username: { type: String, unique: true, sparse: true, lowercase: true, trim: true },
     role: {
       type: String,
       enum: ['patient', 'guardian', 'doctor', 'therapist', 'support', 'hospital_admin', 'admin', 'super_admin'],
@@ -14,6 +15,7 @@ const userSchema = new mongoose.Schema(
     hospital_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', default: null },
     has_selected_role: { type: Boolean, default: false },
     passwordHash: { type: String, required: true },
+    department: { type: String, trim: true },
   },
   { timestamps: true }
 );

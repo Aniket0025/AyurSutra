@@ -9,6 +9,7 @@ import patientRoutes from './routes/patients.routes.js';
 import sessionRoutes from './routes/sessions.routes.js';
 import notificationRoutes from './routes/notifications.routes.js';
 import reportRoutes from './routes/reports.routes.js';
+import appointmentRoutes from './routes/appointments.routes.js';
 
 // Load env before reading process.env in this module
 dotenv.config();
@@ -37,6 +38,7 @@ app.use('/api/patients', patientRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/appointments', appointmentRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

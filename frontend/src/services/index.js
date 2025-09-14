@@ -58,6 +58,18 @@ export const Hospital = {
     await api(`/api/hospitals/${id}`, { method: 'DELETE' });
     return true;
   },
+  async assignStaff(hospitalId, body) {
+    const data = await api(`/api/hospitals/${hospitalId}/staff`, { method: 'POST', body });
+    return normalizeId(data?.user || data);
+  },
+  async listStaff(hospitalId) {
+    const data = await api(`/api/hospitals/${hospitalId}/staff`);
+    return (data?.staff || []).map(normalizeId);
+  },
+  async removeStaff(hospitalId, userId) {
+    await api(`/api/hospitals/${hospitalId}/staff/${userId}`, { method: 'DELETE' });
+    return true;
+  },
 };
 
 export const Patient = {
@@ -81,6 +93,25 @@ export const TherapySession = {
     const qs = new URLSearchParams(query).toString();
     const data = await api(`/api/sessions${qs ? `?${qs}` : ''}`);
     return (data?.sessions || []).map(normalizeId);
+  },
+};
+
+export const Appointments = {
+  async book({ hospital_id, staff_id, type, start_time, end_time, notes }) {
+    const data = await api('/api/appointments', { method: 'POST', body: { hospital_id, staff_id, type, start_time, end_time, notes } });
+    return normalizeId(data?.appointment);
+  },
+  async mine() {
+    const data = await api('/api/appointments/mine');
+    return (data?.appointments || []).map(normalizeId);
+  },
+  async cancel(id) {
+    const data = await api(`/api/appointments/${id}/cancel`, { method: 'POST' });
+    return normalizeId(data?.appointment);
+  },
+  async reschedule(id, { start_time, end_time }) {
+    const data = await api(`/api/appointments/${id}/reschedule`, { method: 'PATCH', body: { start_time, end_time } });
+    return normalizeId(data?.appointment);
   },
 };
 

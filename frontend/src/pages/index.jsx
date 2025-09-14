@@ -31,6 +31,7 @@ import SupportDashboard from "./SupportDashboard";
 // Use the same Dashboard component for lowercase route as well
 
 import Hospitals from "./Hospitals";
+import PatientAppointments from "./PatientAppointments";
 
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import SignIn from "./SignIn.jsx";
@@ -70,6 +71,7 @@ const PAGES = {
     dashboard: Dashboard,
     
     Hospitals: Hospitals,
+    Appointments: PatientAppointments,
     
 }
 
@@ -139,6 +141,9 @@ function PagesContent() {
                 <Route path="/dashboard" element={<RoleGuard roles={["super_admin","hospital_admin","admin"]}> <Dashboard /> </RoleGuard>} />
                 
                 <Route path="/Hospitals" element={<RoleGuard roles={["super_admin","admin","hospital_admin"]}> <Hospitals /> </RoleGuard>} />
+                
+                {/* Patient appointments */}
+                <Route path="/Appointments" element={<RoleGuard roles={["patient","super_admin"]}> <PatientAppointments /> </RoleGuard>} />
                 
             </Routes>
         </Layout>

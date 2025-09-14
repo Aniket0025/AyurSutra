@@ -31,6 +31,117 @@ export const listHospitals = async (req, res) => {
   }
 };
 
+export const listStaff = async (req, res) => {
+  try {
+    const { id: hospitalId } = req.params;
+    // Scope check for hospital_admin
+    if (!isSuperAdmin(req.user) && !isAdmin(req.user)) {
+      if (!req.user.hospital_id || String(req.user.hospital_id) !== String(hospitalId)) {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+    }
+    const allowedRoles = ['doctor','therapist','support'];
+    const users = await User.find({ hospital_id: hospitalId, role: { $in: allowedRoles } });
+    return res.json({ staff: users.map(u => u.toJSON()) });
+  } catch (e) {
+    console.error('listStaff error:', e);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const removeStaff = async (req, res) => {
+  try {
+    const { id: hospitalId, userId } = req.params;
+    if (!isSuperAdmin(req.user) && !isAdmin(req.user)) {
+      if (!req.user.hospital_id || String(req.user.hospital_id) !== String(hospitalId)) {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+    }
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    const allowedRoles = new Set(['doctor','therapist','support']);
+    if (!allowedRoles.has(user.role)) {
+      return res.status(400).json({ message: 'Cannot remove this role via hospital staff endpoint' });
+    }
+    if (String(user.hospital_id) !== String(hospitalId)) {
+      return res.status(400).json({ message: 'User not in this hospital' });
+    }
+    await user.deleteOne();
+    return res.json({ message: 'Staff removed' });
+  } catch (e) {
+    console.error('removeStaff error:', e);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
+export const assignStaff = async (req, res) => {
+  try {
+    const { id: hospitalId } = req.params;
+    const {
+      full_name,
+      email,
+      phone,
+      role,
+      username,
+      password,
+      department,
+    } = req.body || {};
+
+    // Scope: hospital_admin can only assign to their own hospital
+    if (!isSuperAdmin(req.user) && !isAdmin(req.user)) {
+      if (!req.user.hospital_id || String(req.user.hospital_id) !== String(hospitalId)) {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+    }
+
+    const allowedRoles = new Set(['doctor', 'therapist', 'support']);
+    if (!allowedRoles.has(String(role))) {
+      return res.status(400).json({ message: 'Invalid role' });
+    }
+    if (!full_name || !(email || username) || !password) {
+      return res.status(400).json({ message: 'full_name, password and one of email/username are required' });
+    }
+
+    // Ensure hospital exists
+    const hospital = await Hospital.findById(hospitalId);
+    if (!hospital) return res.status(404).json({ message: 'Hospital not found' });
+
+    // Check conflicts
+    if (email) {
+      const existingEmail = await User.findOne({ email });
+      if (existingEmail) return res.status(409).json({ message: 'Email already registered' });
+    }
+    if (phone) {
+      const existingPhone = await User.findOne({ phone });
+      if (existingPhone) return res.status(409).json({ message: 'Phone already registered' });
+    }
+    if (username) {
+      const existingUsername = await User.findOne({ username: String(username).toLowerCase() });
+      if (existingUsername) return res.status(409).json({ message: 'Username already taken' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(String(password), salt);
+
+    const user = await User.create({
+      name: full_name,
+      email: email || undefined,
+      phone: phone || undefined,
+      username: username ? String(username).toLowerCase() : undefined,
+      role,
+      hospital_id: hospital._id,
+      has_selected_role: true,
+      passwordHash,
+      department: department || undefined,
+    });
+
+    return res.status(201).json({ message: 'Staff assigned', user: user.toJSON() });
+  } catch (e) {
+    console.error('assignStaff error:', e);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
 export const getHospital = async (req, res) => {
   try {
     const { id } = req.params;

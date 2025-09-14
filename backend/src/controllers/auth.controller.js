@@ -56,18 +56,23 @@ export const signin = async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { identifier, password } = req.body; // email or phone
+  const { identifier, password } = req.body; // email, phone, or username
 
   try {
     let user = null;
-    if (String(identifier || '').includes('@')) {
-      user = await User.findOne({ email: identifier });
-    } else {
-      user = await User.findOne({ phone: identifier });
-      if (!user && identifier) {
-        // Also try by email synthesized from phone if your system had such behavior previously
-        user = await User.findOne({ email: `${identifier}@local.mobile` });
+    const ident = String(identifier || '').trim();
+    if (ident.includes('@')) {
+      user = await User.findOne({ email: ident });
+    }
+    if (!user && /^\d{6,}$/.test(ident)) {
+      user = await User.findOne({ phone: ident });
+      if (!user) {
+        user = await User.findOne({ email: `${ident}@local.mobile` });
       }
+    }
+    if (!user && ident) {
+      // Try username fallback
+      user = await User.findOne({ username: ident.toLowerCase() });
     }
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });

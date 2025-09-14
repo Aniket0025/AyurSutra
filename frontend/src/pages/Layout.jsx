@@ -47,6 +47,7 @@ const superAdminNavItems = [
 const hospitalAdminNavItems = [
   { title: "Hospital Dashboard", url: "Dashboard", icon: Home },
   { title: "Patients", url: "Patients", icon: Users },
+  { title: "Staff", url: "Staff", icon: UserCheck },
   { title: "Therapy Scheduling", url: "TherapyScheduling", icon: Calendar },
   { title: "Analytics", url: "Analytics", icon: BarChart3 },
   { title: "Reports", url: "Reports", icon: FileText }
@@ -78,6 +79,7 @@ const therapistNavItems = [
 
 const patientNavItems = [
   { title: "My Dashboard", url: "PatientDashboard", icon: Home },
+  { title: "Appointments", url: "Appointments", icon: Calendar },
   { title: "My Schedule", url: "TherapyScheduling", icon: Calendar },
   { title: "Notifications", url: "Notifications", icon: Bell }
 ];
