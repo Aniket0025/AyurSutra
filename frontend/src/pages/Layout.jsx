@@ -77,7 +77,12 @@ const doctorNavItems = [
 ];
 
 const therapistNavItems = [
-  { title: "Therapist Dashboard", url: "TherapistDashboard", icon: Home },
+  { title: "Dashboard Overview", url: "TherapistDashboard", icon: Home },
+  { title: "Assigned Therapies", url: "AssignedTherapies", icon: Users },
+  { title: "Therapy Progress", url: "TherapyProgress", icon: Activity },
+  { title: "Patient Feedback", url: "PatientFeedback", icon: FileText },
+  { title: "Notifications", url: "Notifications", icon: Bell },
+  { title: "Profile/Settings", url: "Settings", icon: Settings },
   { title: "My Sessions", url: "TherapyScheduling", icon: Calendar }
 ];
 

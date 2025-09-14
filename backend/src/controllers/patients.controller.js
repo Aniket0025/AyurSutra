@@ -1,5 +1,8 @@
 import { Patient } from '../models/Patient.js';
 import { withUser } from '../middleware/hospitalScope.js';
+import { Appointment } from '../models/Appointment.js';
+import { User } from '../models/User.js';
+import mongoose from 'mongoose';
 
 export const listPatients = async (req, res) => {
   try {
@@ -11,6 +14,50 @@ export const listPatients = async (req, res) => {
     const patients = await Patient.find(filter).sort({ createdAt: -1 });
     res.json({ patients });
   } catch (e) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// List patients with aggregated appointment records (count and last_appointment)
+export const listPatientsWithRecords = async (req, res) => {
+  try {
+    const isSuper = req.user.role === 'super_admin';
+    const hospitalScope = isSuper ? (req.query.hospital_id || undefined) : req.user.hospital_id;
+    const matchPatients = {};
+    if (!isSuper) {
+      if (!hospitalScope) return res.json({ patients: [] });
+      matchPatients.hospital_id = hospitalScope;
+    } else if (hospitalScope) {
+      matchPatients.hospital_id = hospitalScope;
+    }
+
+    // Fetch base patients in scope
+    const patients = await Patient.find(matchPatients).sort({ createdAt: -1 }).lean();
+    const byUserId = patients.reduce((acc, p) => { if (p.user_id) acc[String(p.user_id)] = p; return acc; }, {});
+    const userIds = Object.keys(byUserId);
+
+    // Aggregate appointments for these users
+    const apptMatch = {};
+    if (userIds.length > 0) apptMatch.patient_id = { $in: userIds.map(id => new mongoose.Types.ObjectId(String(id))) };
+    if (hospitalScope) apptMatch.hospital_id = new mongoose.Types.ObjectId(String(hospitalScope));
+
+    const records = userIds.length > 0
+      ? await Appointment.aggregate([
+          { $match: apptMatch },
+          { $group: { _id: "$patient_id", appointment_count: { $sum: 1 }, last_appointment: { $max: "$start_time" } } }
+        ])
+      : [];
+
+    const byPatientId = records.reduce((acc, r) => { acc[String(r._id)] = r; return acc; }, {});
+
+    const result = patients.map(p => {
+      const r = byPatientId[String(p.user_id)] || { appointment_count: 0, last_appointment: null };
+      return { patient: p, appointment_count: r.appointment_count, last_appointment: r.last_appointment };
+    });
+
+    res.json({ patients: result });
+  } catch (e) {
+    console.error('listPatientsWithRecords error:', e);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -82,6 +129,46 @@ export const deletePatient = async (req, res) => {
     await Patient.findByIdAndDelete(id);
     res.json({ message: 'Deleted' });
   } catch (e) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Create or update Patient records for all users who have taken appointments
+export const syncPatientsFromAppointments = async (req, res) => {
+  try {
+    const isSuper = req.user.role === 'super_admin';
+    const hospitalScope = isSuper ? (req.query.hospital_id || undefined) : req.user.hospital_id;
+    if (!isSuper && !hospitalScope) return res.status(403).json({ message: 'Forbidden' });
+
+    const apptQuery = hospitalScope ? { hospital_id: hospitalScope } : {};
+    const appts = await Appointment.find(apptQuery).sort({ start_time: 1 });
+    let created = 0, updated = 0;
+
+    for (const appt of appts) {
+      const user = await User.findById(appt.patient_id).lean();
+      if (!user) continue;
+
+      let patient = await Patient.findOne({ user_id: appt.patient_id, hospital_id: appt.hospital_id });
+      if (!patient) {
+        await Patient.create({
+          hospital_id: appt.hospital_id,
+          user_id: appt.patient_id,
+          name: user.full_name || user.name || 'Patient',
+          email: user.email || undefined,
+          phone: user.phone || undefined,
+          metadata: { assigned_doctor: undefined },
+        });
+        created += 1;
+      } else {
+        let hasChange = false;
+        if (!patient.hospital_id) { patient.hospital_id = appt.hospital_id; hasChange = true; }
+        if (hasChange) { await patient.save(); updated += 1; }
+      }
+    }
+
+    res.json({ message: 'Sync complete', created, updated, processed: appts.length });
+  } catch (e) {
+    console.error('syncPatientsFromAppointments error:', e);
     res.status(500).json({ message: 'Server error' });
   }
 };

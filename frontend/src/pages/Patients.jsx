@@ -4,6 +4,7 @@ import { Patient } from "@/services";
 import { Hospital } from "@/services";
 import { User } from "@/services";
 import { motion, AnimatePresence } from "framer-motion";
+import { format } from "date-fns";
 import {
   Users,
   Search,
@@ -49,9 +50,14 @@ export default function PatientsPage({ currentUser }) {
         patientFilter = { hospital_id: currentUser.hospital_id };
       }
       
-      const patientsData = await Patient.filter(patientFilter, '-created_date', 500);
-      setAllPatients(patientsData);
-      setFilteredPatients(patientsData);
+      // Fetch patients with records (appointment_count, last_appointment)
+      const patientsData = await Patient.withRecords(patientFilter);
+      // Scope to doctor's own patients if role is doctor
+      const scopedPatients = currentUser.role === 'doctor'
+        ? patientsData.filter(p => (p.assigned_doctor || '').toLowerCase() === (currentUser.full_name || '').toLowerCase())
+        : patientsData;
+      setAllPatients(scopedPatients);
+      setFilteredPatients(scopedPatients);
       
     } catch (error) {
       console.error("Failed to load data:", error);
@@ -223,6 +229,16 @@ export default function PatientsPage({ currentUser }) {
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Phone className="w-4 h-4 text-blue-500" />
             <span>{patient.phone || 'No phone'}</span>
+          </div>
+        </div>
+
+        {/* Appointment summary */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="text-sm text-gray-600">
+            <span className="font-medium">Appointments:</span> {patient.appointment_count || 0}
+          </div>
+          <div className="text-sm text-gray-600">
+            <span className="font-medium">Last Appointment:</span> {patient.last_appointment ? format(new Date(patient.last_appointment), 'MMM dd, yyyy') : '—'}
           </div>
         </div>
 

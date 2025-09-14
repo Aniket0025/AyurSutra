@@ -31,6 +31,9 @@ import SupportDashboard from "./SupportDashboard";
 // Use the same Dashboard component for lowercase route as well
 
 import Hospitals from "./Hospitals";
+import AssignedTherapies from "./AssignedTherapies";
+import TherapyProgress from "./TherapyProgress";
+import PatientFeedback from "./PatientFeedback";
 import PatientAppointments from "./PatientAppointments";
 import DoctorAppointments from "./DoctorAppointments";
 
@@ -72,6 +75,9 @@ const PAGES = {
     dashboard: Dashboard,
     
     Hospitals: Hospitals,
+    AssignedTherapies: AssignedTherapies,
+    TherapyProgress: TherapyProgress,
+    PatientFeedback: PatientFeedback,
     Appointments: PatientAppointments,
     
 }
@@ -131,6 +137,11 @@ function PagesContent() {
                 {/* lowercase alias for role-based redirect */}
                 <Route path="/therapistdashboard" element={<RoleGuard roles={["therapist","super_admin"]}> <TherapistDashboard /> </RoleGuard>} />
                 
+                {/* Therapist dedicated routes */}
+                <Route path="/AssignedTherapies" element={<RoleGuard roles={["therapist","super_admin"]}> <AssignedTherapies /> </RoleGuard>} />
+                <Route path="/TherapyProgress" element={<RoleGuard roles={["therapist","super_admin"]}> <TherapyProgress /> </RoleGuard>} />
+                <Route path="/PatientFeedback" element={<RoleGuard roles={["therapist","super_admin"]}> <PatientFeedback /> </RoleGuard>} />
+
                 <Route path="/GuardianDashboard" element={<RoleGuard roles={["guardian","super_admin"]}> <GuardianDashboard /> </RoleGuard>} />
                 {/* lowercase alias for role-based redirect */}
                 <Route path="/guardiandashboard" element={<RoleGuard roles={["guardian","super_admin"]}> <GuardianDashboard /> </RoleGuard>} />
