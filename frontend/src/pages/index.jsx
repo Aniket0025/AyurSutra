@@ -32,6 +32,7 @@ import SupportDashboard from "./SupportDashboard";
 
 import Hospitals from "./Hospitals";
 import PatientAppointments from "./PatientAppointments";
+import DoctorAppointments from "./DoctorAppointments";
 
 import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import SignIn from "./SignIn.jsx";
@@ -144,6 +145,8 @@ function PagesContent() {
                 
                 {/* Patient appointments */}
                 <Route path="/Appointments" element={<RoleGuard roles={["patient","super_admin"]}> <PatientAppointments /> </RoleGuard>} />
+                {/* Doctor/Therapist appointments management */}
+                <Route path="/DoctorAppointments" element={<RoleGuard roles={["doctor","therapist","super_admin"]}> <DoctorAppointments /> </RoleGuard>} />
                 
             </Routes>
         </Layout>
