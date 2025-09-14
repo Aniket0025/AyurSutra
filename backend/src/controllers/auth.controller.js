@@ -16,7 +16,7 @@ export const signup = async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { name, email, phone, role = 'patient', password } = req.body;
+  const { name, email, phone, role: requestedRole = 'patient', password } = req.body;
 
   try {
     if (email) {
@@ -30,6 +30,10 @@ export const signup = async (req, res) => {
 
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
+
+    // Only allow safe roles during public signup
+    const safePublicRoles = new Set(['patient', 'guardian']);
+    const role = safePublicRoles.has(String(requestedRole)) ? String(requestedRole) : 'patient';
 
     const user = await User.create({ name, email, phone, role, passwordHash });
 
@@ -96,5 +100,10 @@ export const me = async (req, res) => {
     console.error('Me error:', err);
     res.status(500).json({ message: 'Server error' });
   }
+};
+
+export const signout = async (req, res) => {
+  // Using stateless JWT; nothing to invalidate server-side unless maintaining token blacklist
+  res.json({ message: 'Signed out' });
 };
 

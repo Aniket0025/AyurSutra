@@ -3,6 +3,12 @@ import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes.js';
+import dashboardRoutes from './routes/dashboard.routes.js';
+import hospitalRoutes from './routes/hospitals.routes.js';
+import patientRoutes from './routes/patients.routes.js';
+import sessionRoutes from './routes/sessions.routes.js';
+import notificationRoutes from './routes/notifications.routes.js';
+import reportRoutes from './routes/reports.routes.js';
 
 // Load env before reading process.env in this module
 dotenv.config();
@@ -25,6 +31,12 @@ app.use(morgan('dev'));
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/hospitals', hospitalRoutes);
+app.use('/api/patients', patientRoutes);
+app.use('/api/sessions', sessionRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/reports', reportRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
