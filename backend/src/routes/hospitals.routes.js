@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireAuth, authorize } from '../middleware/auth.js';
 import { withUser } from '../middleware/hospitalScope.js';
-import { listHospitals, getHospital, createHospital, updateHospital, deleteHospital } from '../controllers/hospitals.controller.js';
+import { listHospitals, getHospital, createHospital, updateHospital, deleteHospital, assignStaff, listStaff, removeStaff } from '../controllers/hospitals.controller.js';
 
 const router = Router();
 
@@ -11,5 +11,8 @@ router.get('/:id', requireAuth, withUser, getHospital);
 router.post('/', requireAuth, withUser, authorize('super_admin','admin','hospital_admin'), createHospital);
 router.put('/:id', requireAuth, withUser, updateHospital);
 router.delete('/:id', requireAuth, withUser, authorize('super_admin','admin','hospital_admin'), deleteHospital);
+router.post('/:id/staff', requireAuth, withUser, authorize('super_admin','admin','hospital_admin'), assignStaff);
+router.get('/:id/staff', requireAuth, withUser, authorize('super_admin','admin','hospital_admin'), listStaff);
+router.delete('/:id/staff/:userId', requireAuth, withUser, authorize('super_admin','admin','hospital_admin'), removeStaff);
 
 export default router;
