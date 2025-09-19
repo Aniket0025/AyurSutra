@@ -156,3 +156,11 @@ button:focus-visible {
     @apply bg-background text-foreground;
   }
 }
+
+/* Hide native password reveal/clear icons (Edge/IE) so only our custom eye shows */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear,
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
