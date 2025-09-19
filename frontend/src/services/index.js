@@ -1,6 +1,18 @@
 export { User } from './user';
 
-const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL) || '';
+// Determine API base URL with a safe runtime fallback.
+// In production on Vercel, we prefer same-origin '/api' (empty base) and use vercel.json rewrites.
+let API_BASE = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL) || '';
+try {
+  const isBrowser = typeof window !== 'undefined';
+  const isLocalhost = isBrowser && /^(localhost|127\.0\.0\.1)$/.test(window.location.hostname);
+  // If not on localhost but API_BASE is empty or points to localhost, fall back to same-origin
+  if (!isLocalhost) {
+    if (!API_BASE || /localhost:\d+/.test(String(API_BASE))) {
+      API_BASE = '';
+    }
+  }
+} catch {}
 
 async function api(path, { method = 'GET', body, auth = true } = {}) {
   const headers = { 'Content-Type': 'application/json' };
