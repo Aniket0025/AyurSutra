@@ -1,8 +1,16 @@
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import app from './app.js';
 import { connectDB } from './config/db.js';
 
-dotenv.config();
+// Ensure .env values override any existing environment variables (e.g., system MONGO_URI)
+// Resolve backend/.env explicitly relative to this file
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const envPath = path.resolve(__dirname, '../.env');
+dotenv.config({ path: envPath, override: true });
+console.log(`[Server] Loaded .env from: ${envPath}`);
 
 const PORT = process.env.PORT || 5000;
 
