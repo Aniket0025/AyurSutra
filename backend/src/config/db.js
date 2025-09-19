@@ -12,6 +12,17 @@ export const connectDB = async () => {
       `MONGO_URI looks invalid. Expected it to start with "mongodb://" or "mongodb+srv://" but got: ${uri}`
     );
   }
+
+  // Diagnostics: log a masked URI and warn about common mistakes
+  try {
+    const masked = uri.replace(/:\/\/(.*?):(.*?)@/, (m, user) => `://${user}:******@`);
+    console.log(`[DB] Using MONGO_URI: ${masked}`);
+    if (/sih@2025/.test(uri) || /@\d{4}@/.test(uri)) {
+      console.warn('[DB] Warning: It looks like the password contains an unencoded "@". Encode "@" as %40.');
+    }
+  } catch (_) {
+    // best-effort logging only
+  }
   try {
     await mongoose.connect(uri, {
       // Mongoose 8 has sensible defaults; options left empty intentionally
