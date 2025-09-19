@@ -9,7 +9,8 @@ import { connectDB } from './config/db.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const envPath = path.resolve(__dirname, '../.env');
-dotenv.config({ path: envPath, override: true });
+// Load local .env without overriding environment provided by the host (e.g., Render)
+dotenv.config({ path: envPath });
 console.log(`[Server] Loaded .env from: ${envPath}`);
 
 const PORT = process.env.PORT || 5000;

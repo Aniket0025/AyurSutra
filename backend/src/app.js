@@ -33,13 +33,22 @@ if (process.env.FRONTEND_REGEX) {
   }
 }
 
-const allowedOrigins = new Set([...DEFAULT_ORIGINS, ...ORIGINS]);
+// Normalize function: remove trailing slashes to avoid mismatch
+const normalizeOrigin = (o) => (typeof o === 'string' ? o.replace(/\/+$/, '') : o);
+const allowedOrigins = new Set([...DEFAULT_ORIGINS, ...ORIGINS].map(normalizeOrigin));
+
+// Diagnostics at startup
+console.log('[CORS] Allowed origins:', Array.from(allowedOrigins));
+if (originRegex) {
+  console.log('[CORS] FRONTEND_REGEX active:', originRegex.toString());
+}
 
 const corsOptions = {
   origin(origin, callback) {
     // Allow non-browser requests or same-origin without Origin header
     if (!origin) return callback(null, true);
-    if (allowedOrigins.has(origin)) return callback(null, true);
+    const norm = normalizeOrigin(origin);
+    if (allowedOrigins.has(norm)) return callback(null, true);
     if (originRegex && originRegex.test(origin)) return callback(null, true);
     const msg = `[CORS] Origin not allowed: ${origin}`;
     console.warn(msg);
