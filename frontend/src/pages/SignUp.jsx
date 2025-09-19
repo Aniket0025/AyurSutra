@@ -99,7 +99,10 @@ export default function SignUp() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-purple-50">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-green-50 via-emerald-50 to-green-100">
+      {/* Decorative gradient blobs */}
+      <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-gradient-to-br from-emerald-200/40 to-green-200/30 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-gradient-to-br from-green-300/40 to-emerald-200/30 blur-3xl" />
       {/* Header Bar */}
       <header className="relative z-20 flex items-center justify-between px-4 sm:px-6 py-4 gap-4">
         <div className="logo-section flex items-center gap-2 sm:gap-3">
@@ -132,10 +135,12 @@ export default function SignUp() {
         </div>
       </header>
 
-      {/* Form Card */}
-      <div className="w-full max-w-md mx-auto mt-6 sm:mt-10 bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50 p-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Create your account</h1>
-        <p className="text-gray-500 mb-6">Join AyurSutra and manage your journey</p>
+      {/* Form Card with gradient border */}
+      <div className="relative z-10 w-full max-w-md mx-auto mt-6 sm:mt-10">
+        <div className="p-[1px] rounded-2xl bg-gradient-to-r from-blue-400/40 via-emerald-300/40 to-purple-400/40">
+          <div className="bg-white/80 backdrop-blur-md rounded-2xl shadow-xl border border-white/40 p-6">
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">Create your account</h1>
+            <p className="text-gray-500 mb-6">Join AyurSutra and manage your journey</p>
 
         {error && (
           <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-700 text-sm border border-red-200">
@@ -222,7 +227,7 @@ export default function SignUp() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg py-2.5 transition disabled:opacity-60"
+            className="w-full bg-green-400 hover:bg-green-500 text-white font-semibold rounded-lg py-2.5 shadow-md transition disabled:opacity-60"
           >
             {loading ? "Creating account..." : "Sign Up"}
           </button>
@@ -234,6 +239,8 @@ export default function SignUp() {
             Sign in
           </Link>
         </p>
+          </div>
+        </div>
       </div>
     </div>
   );
