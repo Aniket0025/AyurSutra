@@ -114,6 +114,8 @@ function PagesContent() {
                 <Route path="/Dashboard" element={<RoleGuard roles={["super_admin","hospital_admin","admin"]}> <Dashboard /> </RoleGuard>} />
                 
                 <Route path="/Patients" element={<RoleGuard roles={["super_admin","hospital_admin","admin","doctor","support","guardian"]}> <Patients /> </RoleGuard>} />
+                {/* lowercase alias for easier navigation */}
+                <Route path="/patients" element={<RoleGuard roles={["super_admin","hospital_admin","admin","doctor","support","guardian"]}> <Patients /> </RoleGuard>} />
                 
                 <Route path="/Settings" element={<RoleGuard roles={[]}> <Settings /> </RoleGuard>} />
                 

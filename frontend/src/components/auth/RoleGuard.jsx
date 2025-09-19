@@ -3,6 +3,7 @@ import { User } from '@/services';
 
 export default function RoleGuard({ roles = [], children }) {
   const [allowed, setAllowed] = useState(undefined);
+  const [me, setMe] = useState(null);
 
   useEffect(() => {
     let mounted = true;
@@ -14,6 +15,7 @@ export default function RoleGuard({ roles = [], children }) {
           setAllowed(false);
           return;
         }
+        setMe(user);
         if (roles.length === 0) {
           setAllowed(true);
           return;
@@ -44,5 +46,9 @@ export default function RoleGuard({ roles = [], children }) {
     );
   }
 
+  // Pass the fetched user down so pages receive currentUser
+  if (React.isValidElement(children)) {
+    return React.cloneElement(children, { currentUser: me });
+  }
   return <>{children}</>;
 }

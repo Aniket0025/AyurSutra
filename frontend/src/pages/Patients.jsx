@@ -35,6 +35,25 @@ export default function PatientsPage({ currentUser }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
+  // Fallback to fetch user if not passed by parent guards/layout
+  const [self, setSelf] = useState(currentUser);
+
+  useEffect(() => {
+    let mounted = true;
+    if (!currentUser) {
+      (async () => {
+        try {
+          const me = await User.me();
+          if (mounted) setSelf(me);
+        } catch {
+          if (mounted) setSelf(null);
+        }
+      })();
+    } else {
+      setSelf(currentUser);
+    }
+    return () => { mounted = false; };
+  }, [currentUser]);
   const [isAddPatientModalOpen, setIsAddPatientModalOpen] = useState(false); // Renamed state variable
   const [showGuardianModal, setShowGuardianModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -42,19 +61,20 @@ export default function PatientsPage({ currentUser }) {
   const [selectedPatientId, setSelectedPatientId] = useState(null);
 
   const loadPatients = useCallback(async () => {
-    if (!currentUser) return;
+    const user = self;
+    if (!user) return;
     setIsLoading(true);
     try {
       let patientFilter = {};
-      if (currentUser.role === 'hospital_admin') {
-        patientFilter = { hospital_id: currentUser.hospital_id };
+      if (user.role === 'hospital_admin') {
+        patientFilter = { hospital_id: user.hospital_id };
       }
       
       // Fetch patients with records (appointment_count, last_appointment)
       const patientsData = await Patient.withRecords(patientFilter);
       // Scope to doctor's own patients if role is doctor
-      const scopedPatients = currentUser.role === 'doctor'
-        ? patientsData.filter(p => (p.assigned_doctor || '').toLowerCase() === (currentUser.full_name || '').toLowerCase())
+      const scopedPatients = user.role === 'doctor'
+        ? patientsData.filter(p => (p.assigned_doctor || '').toLowerCase() === (user.full_name || '').toLowerCase())
         : patientsData;
       setAllPatients(scopedPatients);
       setFilteredPatients(scopedPatients);
@@ -69,7 +89,7 @@ export default function PatientsPage({ currentUser }) {
       });
     }
     setIsLoading(false);
-  }, [currentUser]);
+  }, [self]);
 
   useEffect(() => {
     loadPatients();
@@ -273,7 +293,7 @@ export default function PatientsPage({ currentUser }) {
     );
   };
 
-  if (!currentUser || isLoading) {
+  if (!self || isLoading) {
     return (
       <div className="p-8 space-y-6 animate-pulse">
         <div className="h-8 bg-gray-200 rounded w-64"></div>
