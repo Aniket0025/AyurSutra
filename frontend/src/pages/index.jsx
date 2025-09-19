@@ -2,7 +2,7 @@ import Layout from "./Layout.jsx";
 
 import PatientDashboard from "./PatientDashboard";
 
-import Dashboard from "./Dashboard";
+import Dashboard from "./dashboard.jsx";
 
 import Patients from "./Patients";
 

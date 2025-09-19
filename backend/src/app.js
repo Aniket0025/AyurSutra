@@ -17,9 +17,34 @@ dotenv.config();
 const app = express();
 
 // Middlewares
-const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
+// CORS configuration: support single origin, CSV list, and optional regex pattern
+const DEFAULT_ORIGINS = ['http://localhost:5173'];
+const ORIGINS = (process.env.FRONTEND_ORIGINS || process.env.FRONTEND_ORIGIN || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+let originRegex = null;
+if (process.env.FRONTEND_REGEX) {
+  try {
+    originRegex = new RegExp(process.env.FRONTEND_REGEX);
+  } catch (e) {
+    console.warn('[CORS] Invalid FRONTEND_REGEX provided, ignoring:', e.message);
+  }
+}
+
+const allowedOrigins = new Set([...DEFAULT_ORIGINS, ...ORIGINS]);
+
 const corsOptions = {
-  origin: FRONTEND_ORIGIN,
+  origin(origin, callback) {
+    // Allow non-browser requests or same-origin without Origin header
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.has(origin)) return callback(null, true);
+    if (originRegex && originRegex.test(origin)) return callback(null, true);
+    const msg = `[CORS] Origin not allowed: ${origin}`;
+    console.warn(msg);
+    return callback(new Error(msg), false);
+  },
   credentials: true,
   methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization']
