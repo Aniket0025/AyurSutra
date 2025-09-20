@@ -676,7 +676,7 @@ export default function Layout({ children, currentPageName }) {
     if (showLandingPage) {
       return (
         <div className="fixed inset-0 z-50 bg-white overflow-y-auto">
-          <div className="absolute top-4 right-4 z-10">
+          <div className="absolute top-4 right-4 z-[9999] pointer-events-auto">
             <button
               onClick={closeLandingPage}
               className="bg-white/90 backdrop-blur-sm text-gray-700 px-4 py-2 rounded-xl shadow-lg hover:bg-white transition-colors"

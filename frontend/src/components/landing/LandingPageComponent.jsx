@@ -1,13 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GenerateImage } from '@/services/integrations';
 import { User } from '@/services';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import {
   Stethoscope, Play, ArrowRight, Calendar, MessageSquare, Shield,
-  Bell, BarChart3, Heart, Star, Sparkles, Brain, X, CheckCircle, Award, Users, Globe
+  Bell, BarChart3, Heart, Star, Sparkles, X, CheckCircle, Award, Users, Globe
 } from 'lucide-react';
 import AIAvatarAssistant from '../avatar/AIAvatarAssistant';
 import AIDoctorBot from '../doctor/AIDoctorBot';
@@ -226,6 +225,8 @@ export default function LandingPageComponent({ onLogin, onNavigateToApp }) {
     email: '',
     role: 'patient'
   });
+  // Track current user to hide auth buttons when logged in
+  const [currentUser, setCurrentUser] = useState(null);
 
   const handleRequestDemo = async () => {
     setIsGeneratingDemo(true);
@@ -258,6 +259,20 @@ export default function LandingPageComponent({ onLogin, onNavigateToApp }) {
       clearTimeout(timer1);
       clearTimeout(timer2);
     };
+  }, []);
+
+  // Load current user to determine auth state
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const me = await User.me();
+        if (mounted) setCurrentUser(me);
+      } catch (e) {
+        if (mounted) setCurrentUser(null);
+      }
+    })();
+    return () => { mounted = false; };
   }, []);
 
   return (
@@ -396,15 +411,17 @@ export default function LandingPageComponent({ onLogin, onNavigateToApp }) {
           </div>
         </motion.div>
 
-        <div className="auth-buttons flex-shrink-0 flex items-center gap-2">
-          <Link to={createPageUrl('SignUp')} className="relative z-10 bg-white text-gray-700 px-4 py-2 rounded-xl border border-gray-200 hover:border-gray-300 hover:text-gray-900 transition-colors text-sm font-medium shadow-none">
-            Sign Up
-          </Link>
-          <Link to={createPageUrl('SignIn')} className="sign-in-button relative z-10 bg-gradient-to-r from-blue-600 to-green-600 text-white px-4 py-2 rounded-xl shadow-none transition-colors text-sm font-medium flex items-center gap-2">
-            <span>Sign In</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
+        {!currentUser && (
+          <div className="auth-buttons flex-shrink-0 flex items-center gap-2">
+            <Link to={createPageUrl('SignUp')} className="relative z-10 bg-white text-gray-700 px-4 py-2 rounded-xl border border-gray-200 hover:border-gray-300 hover:text-gray-900 transition-colors text-sm font-medium shadow-none">
+              Sign Up
+            </Link>
+            <Link to={createPageUrl('SignIn')} className="sign-in-button relative z-10 bg-gradient-to-r from-blue-600 to-green-600 text-white px-4 py-2 rounded-xl shadow-none transition-colors text-sm font-medium flex items-center gap-2">
+              <span>Sign In</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        )}
       </header>
 
       <main className="relative z-10">
@@ -418,8 +435,13 @@ export default function LandingPageComponent({ onLogin, onNavigateToApp }) {
                 transition={{ duration: 0.8, delay: 0.2 }}
                 className="mb-8"
               >
-                <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-purple-500 to-blue-600 rounded-3xl flex items-center justify-center shadow-2xl animate-float">
-                  <Brain className="w-12 h-12 text-white" />
+                <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-purple-500 to-blue-600 rounded-3xl flex items-center justify-center shadow-2xl animate-float overflow-hidden">
+                  <img
+                    src="/images/ayurveda-symbol.svg"
+                    alt="Ayurveda Symbol"
+                    className="w-20 h-20 object-contain"
+                    loading="eager"
+                  />
                 </div>
 
                 <h1 className="mobile-title text-5xl md:text-7xl font-bold mb-6 leading-tight">
@@ -458,29 +480,30 @@ export default function LandingPageComponent({ onLogin, onNavigateToApp }) {
                   {isGeneratingDemo ? 'Preparing Demo...' : 'Watch Live Demo'}
                 </motion.button>
 
-                <motion.button
-                  onClick={() => { window.location.href = createPageUrl('SignUp'); }}
-                  className="w-full sm:w-auto bg-white text-gray-700 px-8 py-4 rounded-2xl text-lg font-bold shadow-xl hover:shadow-2xl border-2 border-gray-200 hover:border-blue-300 transform hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-3"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Stethoscope className="w-6 h-6" />
-                  Start Your Journey
-                </motion.button>
+                {currentUser ? (
+                  <motion.button
+                    onClick={onNavigateToApp}
+                    className="w-full sm:w-auto bg-white text-gray-700 px-8 py-4 rounded-2xl text-lg font-bold shadow-xl hover:shadow-2xl border-2 border-gray-200 hover:border-blue-300 transform hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-3"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Stethoscope className="w-6 h-6" />
+                    Go to App
+                  </motion.button>
+                ) : (
+                  <motion.button
+                    onClick={() => { window.location.href = createPageUrl('SignUp'); }}
+                    className="w-full sm:w-auto bg-white text-gray-700 px-8 py-4 rounded-2xl text-lg font-bold shadow-xl hover:shadow-2xl border-2 border-gray-200 hover:border-blue-300 transform hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-3"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Stethoscope className="w-6 h-6" />
+                    Start Your Journey
+                  </motion.button>
+                )}
               </motion.div>
 
-              {/* Stats Section - Mobile Responsive */}
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.8 }}
-                className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 mb-16"
-              >
-                <Stat value="10,000+" label="Patients Treated" delay={0.1} />
-                <Stat value="500+" label="Healthcare Providers" delay={0.2} />
-                <Stat value="50+" label="Partner Hospitals" delay={0.3} />
-                <Stat value="98%" label="Patient Satisfaction" delay={0.4} />
-              </motion.div>
+              {/* Stats Section removed per request */}
             </div>
           </div>
         </section>
@@ -934,14 +957,6 @@ export default function LandingPageComponent({ onLogin, onNavigateToApp }) {
               <h2 className="text-4xl md:text-5xl font-bold mb-4">Ready to Transform Your Ayurvedic Practice?</h2>
               <p className="text-lg opacity-90 mb-8">Join the healthcare revolution with authentic Panchakarma management powered by AI.</p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <motion.button
-                  onClick={onLogin}
-                  className="px-8 py-4 bg-white text-blue-600 font-bold rounded-xl shadow-lg hover:bg-gray-100 transition"
-                  whileHover={{ scale: 1.05, y: -3 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Start Free Trial
-                </motion.button>
                 <motion.button
                   onClick={handleRequestDemo}
                   className="px-8 py-4 bg-black/20 text-white font-bold rounded-xl hover:bg-black/30 transition"
