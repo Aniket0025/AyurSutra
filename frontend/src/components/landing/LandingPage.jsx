@@ -1,25 +1,17 @@
-import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Stethoscope, 
-  BarChart, 
-  Bell, 
-  Calendar, 
-  Shield, 
-  Cpu, 
-  Zap, 
-  HeartPulse, 
-  GitCommitHorizontal, 
-  MessageSquare,
+import {
   ArrowRight,
+  BarChart,
+  Bell,
+  Calendar,
+  HeartPulse,
+  MessageSquare,
   Play,
-  Check,
+  Shield,
   Star,
-  Users,
-  Clock,
-  Activity,
-  Target
+  Stethoscope
 } from 'lucide-react';
+import { useState } from 'react';
 
 const FeatureCard = ({ icon: Icon, title, description, delay }) => (
   <motion.div
@@ -266,8 +258,8 @@ export default function LandingPage({ onLogin }) {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             <FeatureCard 
               icon={Calendar} 
-              title="AI-Powered Scheduling" 
-              description="Intelligent therapy scheduling that eliminates conflicts and optimizes resource utilization with machine learning algorithms."
+              title="Support for Android" 
+              description="Seamless support and compatibility designed for Android devices, ensuring smooth performance and user-friendly experience."
               delay={0}
             />
             <FeatureCard 
