@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+
 import { Patient } from "@/services";
 import { TherapySession } from "@/services";
 import { Feedback } from "@/services";
@@ -11,7 +13,10 @@ import { Calendar, Activity, Heart, Bell, CheckCircle, Clock, AlertTriangle } fr
 import { format } from "date-fns";
 
 export default function PatientDashboard() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [currentUser, setCurrentUser] = useState(null);
+
   const [patientData, setPatientData] = useState(null);
   const [todaySessions, setTodaySessions] = useState([]);
   const [upcomingSessions, setUpcomingSessions] = useState([]);
@@ -22,6 +27,17 @@ export default function PatientDashboard() {
   useEffect(() => {
     loadDashboardData();
   }, []);
+
+  // Smooth-scroll to sections when hash is present (e.g., #progress)
+  useEffect(() => {
+    if (location.hash) {
+      const id = location.hash.replace('#', '');
+      const el = document.getElementById(id);
+      if (el) {
+        setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+      }
+    }
+  }, [location.hash]);
 
   const loadDashboardData = async () => {
     try {
@@ -117,6 +133,7 @@ export default function PatientDashboard() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div id="progress">
         <ProgressCard
           title="Progress Score"
           value={patientData?.progress_score || 0}
@@ -124,6 +141,7 @@ export default function PatientDashboard() {
           icon={Activity}
           color="purple"
         />
+        </div>
         <ProgressCard
           title="Today's Sessions"
           value={todaySessions.length}
@@ -256,15 +274,32 @@ export default function PatientDashboard() {
           </div>
 
           <div className="space-y-3">
-            <ClayButton variant="primary" className="w-full justify-start" size="lg">
-              <Calendar className="w-5 h-5 mr-3" />
-              View Full Schedule
-            </ClayButton>
-            <ClayButton variant="success" className="w-full justify-start" size="lg">
-              <Activity className="w-5 h-5 mr-3" />
-              Track Progress
-            </ClayButton>
-            <ClayButton variant="warning" className="w-full justify-start" size="lg">
+            <Link to="/TherapyScheduling" className="block">
+              <ClayButton
+                variant="primary"
+                className="w-full justify-start"
+                size="lg"
+              >
+                <Calendar className="w-5 h-5 mr-3" />
+                View Full Schedule
+              </ClayButton>
+            </Link>
+            <Link to="/PatientDashboard#progress" className="block">
+              <ClayButton
+                variant="success"
+                className="w-full justify-start"
+                size="lg"
+              >
+                <Activity className="w-5 h-5 mr-3" />
+                Track Progress
+              </ClayButton>
+            </Link>
+            <ClayButton
+              variant="warning"
+              className="w-full justify-start"
+              size="lg"
+              onClick={() => navigate('/Notifications')}
+            >
               <Bell className="w-5 h-5 mr-3" />
               Check Notifications
             </ClayButton>

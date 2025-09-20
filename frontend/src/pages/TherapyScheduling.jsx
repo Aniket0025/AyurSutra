@@ -34,6 +34,7 @@ export default function TherapyScheduling({ currentUser }) {
   const [sessions, setSessions] = useState([]);
   const [patients, setPatients] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [statusMessage, setStatusMessage] = useState("");
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [viewType, setViewType] = useState('week');
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -41,42 +42,91 @@ export default function TherapyScheduling({ currentUser }) {
   const [searchTerm, setSearchTerm] = useState("");
 
   const loadData = useCallback(async () => {
-    if (!currentUser) return;
-    
+    // Resolve user from props or fallback to API to ensure rendering
+    const user = currentUser || await User.me().catch(() => null);
+    if (!user) {
+      setIsLoading(false);
+      setStatusMessage('No authenticated user found.');
+      return;
+    }
+
     setIsLoading(true);
     try {
-      console.log("Loading therapy scheduling data for user:", currentUser);
-      
-      // Use EXACT same filtering logic as Dashboard
+      console.log("Loading therapy scheduling data for user:", user);
+
+      // Prepare filters
       let patientFilter = {};
       let sessionFilter = {};
 
-      // Apply consistent filtering logic across all user roles
-      if (currentUser.role === 'super_admin') {
-        console.log("Super admin: Loading all data");
-      } else if (currentUser.hospital_id && ['hospital_admin', 'admin', 'doctor', 'therapist'].includes(currentUser.role)) {
-        patientFilter = { hospital_id: currentUser.hospital_id };
-        sessionFilter = { hospital_id: currentUser.hospital_id };
-        console.log("Hospital-based user: Filtering by hospital_id:", currentUser.hospital_id);
-      } else if (currentUser.role === 'patient') {
-        patientFilter = { user_id: currentUser.id };
-        sessionFilter = { patient_id: currentUser.id };
-        console.log("Patient: Filtering by user_id:", currentUser.id);
-      } else if (currentUser.role === 'guardian') {
-        patientFilter = { guardian_ids: currentUser.id };
+      if (user.role === 'super_admin') {
+        console.log('Super admin: Loading all data');
+      } else if (user.hospital_id && ['hospital_admin', 'admin', 'doctor', 'therapist'].includes(user.role)) {
+        patientFilter = { hospital_id: user.hospital_id };
+        sessionFilter = { hospital_id: user.hospital_id };
+        console.log('Hospital-based user: Filtering by hospital_id:', user.hospital_id);
+      } else if (user.role === 'patient') {
+        // First fetch the patient record, then load sessions by patient_id
+        patientFilter = { user_id: user.id };
+        console.log('Patient: Resolving patient record for user_id:', user.id);
+
+        let patientsData = await Patient.filter(patientFilter, '-created_date', 2).catch(err => {
+          console.error('Error loading patient record for user:', err);
+          return [];
+        });
+
+        const patientId = patientsData?.[0]?.id;
+        console.log('Resolved patientId:', patientId);
+
+        if (!patientId) {
+          // Fallback: attempt to resolve by email if available
+          if (user?.email) {
+            console.log('Attempting fallback resolve by email:', user.email);
+            patientsData = await Patient.filter({ email: user.email }, '-created_date', 2).catch(() => []);
+          }
+          const fallbackId = patientsData?.[0]?.id;
+          if (!fallbackId) {
+            setPatients([]);
+            setSessions([]);
+            setIsLoading(false);
+            setStatusMessage('No patient record linked to your account.');
+            return;
+          }
+          const sessionsData = await TherapySession.filter({ patient_id: fallbackId }, '-created_date', 500).catch(err => {
+            console.error('Error loading sessions for fallback patient:', err);
+            return [];
+          });
+          setPatients(patientsData);
+          setSessions(sessionsData);
+          setIsLoading(false);
+          setStatusMessage(sessionsData.length ? '' : 'No sessions found for your account.');
+          return;
+        }
+
+        const sessionsData = await TherapySession.filter({ patient_id: patientId }, '-created_date', 500).catch(err => {
+          console.error('Error loading sessions for patient:', err);
+          return [];
+        });
+
+        setPatients(patientsData);
+        setSessions(sessionsData);
+        setIsLoading(false);
+        setStatusMessage(sessionsData.length ? '' : 'No sessions found for your account.');
+        return;
+      } else if (user.role === 'guardian') {
+        patientFilter = { guardian_ids: user.id };
         sessionFilter = {}; // Will be filtered based on patient results
-        console.log("Guardian: Filtering by guardian_ids:", currentUser.id);
+        console.log('Guardian: Filtering by guardian_ids:', user.id);
       }
 
-      console.log("Using filters for scheduling:", { patientFilter, sessionFilter });
+      console.log('Using filters for scheduling:', { patientFilter, sessionFilter });
 
       const [sessionsData, patientsData] = await Promise.all([
         TherapySession.filter(sessionFilter, '-created_date', 500).catch(err => {
-          console.error("Error loading sessions:", err);
+          console.error('Error loading sessions:', err);
           return [];
         }),
         Patient.filter(patientFilter, '-created_date', 500).catch(err => {
-          console.error("Error loading patients:", err);
+          console.error('Error loading patients:', err);
           return [];
         })
       ]);
@@ -89,8 +139,9 @@ export default function TherapyScheduling({ currentUser }) {
       });
 
       // If guardian, filter sessions to only show sessions for their patients
+
       let finalSessions = sessionsData;
-      if (currentUser.role === 'guardian' && patientsData.length > 0) {
+      if (user.role === 'guardian' && patientsData.length > 0) {
         const patientIds = patientsData.map(p => p.id);
         finalSessions = sessionsData.filter(session => patientIds.includes(session.patient_id));
         console.log("Guardian filtered sessions:", finalSessions);
@@ -104,18 +155,19 @@ export default function TherapyScheduling({ currentUser }) {
 
       setSessions(finalSessions);
       setPatients(patientsData);
+      setStatusMessage(finalSessions.length ? '' : 'No sessions found for your account.');
     } catch (error) {
       console.error("Error loading scheduling data:", error);
       setSessions([]);
       setPatients([]);
+      setStatusMessage('Failed to load sessions.');
     }
     setIsLoading(false);
   }, [currentUser]);
 
   useEffect(() => {
-    if (currentUser) {
-      loadData();
-    }
+    // Always attempt to load data; loadData resolves user if prop is missing
+    loadData();
   }, [currentUser, loadData]);
 
   const getWeekDays = () => {
@@ -297,6 +349,11 @@ export default function TherapyScheduling({ currentUser }) {
           <p className="text-xs md:text-sm font-medium text-gray-500 mb-1">{title}</p>
           <p className="text-2xl md:text-3xl font-bold text-gray-900">{value}</p>
         </div>
+        {statusMessage && (
+          <div className="px-4 py-3 rounded-xl bg-yellow-50 text-yellow-800 border border-yellow-200">
+            {statusMessage}
+          </div>
+        )}
         <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gradient-to-br ${color} flex items-center justify-center shadow-lg`}>
           <Icon className="w-5 h-5 md:w-6 md:h-6 text-white" />
         </div>
@@ -405,7 +462,7 @@ export default function TherapyScheduling({ currentUser }) {
             padding: 0.5rem;
           }
           
-  .session-card {
+          .session-card {
             margin-bottom: 0.25rem;
             font-size: 0.75rem;
           }
@@ -552,6 +609,9 @@ export default function TherapyScheduling({ currentUser }) {
                       </div>
                     ))}
                   </AnimatePresence>
+                  {getSessionsForDay(day).length === 0 && (
+                    <div className="text-xs md:text-sm text-gray-400 text-center py-2">No sessions</div>
+                  )}
                 </div>
               </div>
             ))}

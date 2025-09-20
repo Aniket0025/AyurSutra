@@ -33,6 +33,7 @@ import SupportDashboard from "./SupportDashboard";
 import Hospitals from "./Hospitals";
 import AssignedTherapies from "./AssignedTherapies";
 import TherapyProgress from "./TherapyProgress";
+import PatientProgress from "./PatientProgress";
 import PatientFeedback from "./PatientFeedback";
 import PatientAppointments from "./PatientAppointments";
 import DoctorAppointments from "./DoctorAppointments";
@@ -77,6 +78,7 @@ const PAGES = {
     Hospitals: Hospitals,
     AssignedTherapies: AssignedTherapies,
     TherapyProgress: TherapyProgress,
+    PatientProgress: PatientProgress,
     PatientFeedback: PatientFeedback,
     Appointments: PatientAppointments,
     
@@ -158,6 +160,8 @@ function PagesContent() {
                 
                 {/* Patient appointments */}
                 <Route path="/Appointments" element={<RoleGuard roles={["patient","super_admin"]}> <PatientAppointments /> </RoleGuard>} />
+                {/* Patient Progress */}
+                <Route path="/PatientProgress" element={<RoleGuard roles={["patient","super_admin"]}> <PatientProgress /> </RoleGuard>} />
                 {/* Doctor/Therapist appointments management */}
                 <Route path="/DoctorAppointments" element={<RoleGuard roles={["doctor","therapist","super_admin"]}> <DoctorAppointments /> </RoleGuard>} />
                 
