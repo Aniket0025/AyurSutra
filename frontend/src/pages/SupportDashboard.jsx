@@ -9,7 +9,7 @@ export default function SupportDashboard() {
           <UserPlus className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Support Staff Dashboard</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Office Executive Dashboard</h1>
           <p className="text-gray-500">Tools for patient registration and administration.</p>
         </div>
       </div>
@@ -21,6 +21,10 @@ export default function SupportDashboard() {
         <div className="bg-white p-6 rounded-xl shadow-sm border">
             <h2 className="text-xl font-semibold flex items-center gap-2"><CreditCard className="text-green-500" /> Payment Processing</h2>
             <p className="mt-2 text-gray-600">Manage invoices and patient payments.</p>
+        </div>
+        <div className="bg-white p-6 rounded-xl shadow-sm border">
+            <h2 className="text-xl font-semibold flex items-center gap-2"><CreditCard className="text-green-500" /> Managment</h2>
+            <p className="mt-2 text-gray-600">Scheduling and managing therapy sessions.</p>
         </div>
       </div>
     </div>

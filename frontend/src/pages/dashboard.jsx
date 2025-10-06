@@ -20,7 +20,7 @@ export default function Dashboard({ currentUser }) {
         </div>
         <div className="p-6 bg-white rounded-2xl border border-gray-200 shadow-sm">
           <h2 className="text-lg font-semibold text-gray-800 mb-2">Status</h2>
-          <p className="text-sm text-gray-600">All Base44 dependencies removed. Integrations are stubbed for local development.</p>
+          <p className="text-sm text-gray-600">Working perfectly.</p>
         </div>
         <div className="p-6 bg-white rounded-2xl border border-gray-200 shadow-sm">
           <h2 className="text-lg font-semibold text-gray-800 mb-2">User</h2>

@@ -108,8 +108,7 @@ export default function AddStaffModal({ isOpen, onClose, onStaffAdded, currentUs
               <label className="block text-sm font-medium text-gray-700 mb-2">Role *</label>
               <select name="role" value={formData.role} onChange={handleChange} required className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 bg-white">
                 <option value="doctor">Doctor</option>
-                <option value="therapist">Therapist</option>
-                <option value="support">Support</option>
+                <option value="support">Office Executive</option>
               </select>
             </div>
             <div>

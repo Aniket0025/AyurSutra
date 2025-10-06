@@ -332,7 +332,7 @@ export default function HospitalsPage({ currentUser }) {
           className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-green-600 text-white px-6 py-3 rounded-2xl hover:shadow-lg transition-all duration-300"
         >
           <Plus className="w-5 h-5" />
-          Assign Hospital
+          Assign Admin
         </button>
       </div>
 
@@ -469,7 +469,7 @@ export default function HospitalsPage({ currentUser }) {
                     <Building className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">Assign Hospital</h3>
+                    <h3 className="text-lg font-semibold text-gray-900">Assign Admin</h3>
                     <p className="text-sm text-gray-500">Create a hospital record and assign it to the system</p>
                   </div>
                 </div>
@@ -646,7 +646,7 @@ function HospitalForm({ onSubmit, onCancel }) {
     <form onSubmit={submit} className="p-6 space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Hospital Name</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Clinic admin name</label>
           <input name="name" value={form.name} onChange={update} required className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
         </div>
         <div>
@@ -670,11 +670,11 @@ function HospitalForm({ onSubmit, onCancel }) {
           <input name="state" value={form.state} onChange={update} className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Hospital Admin Email</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Clinic admin email</label>
           <input name="admin_email" type="email" value={form.admin_email} onChange={update} placeholder="admin@example.com" className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Hospital Admin Password</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Clinic admin password</label>
           <input name="admin_password" type="password" value={form.admin_password} onChange={update} placeholder="••••••" className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
         </div>
       </div>

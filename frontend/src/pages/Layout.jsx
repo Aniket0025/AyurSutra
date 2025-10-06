@@ -55,7 +55,7 @@ const hospitalAdminNavItems = [
 
 const adminNavItems = [
   { title: "Admin Dashboard", url: "Dashboard", icon: Home },
-  { title: "Assign Hospital", url: "Hospitals", icon: Building },
+  { title: "Assign Admin", url: "Hospitals", icon: Building },
   { title: "Patients", url: "Patients", icon: Users },
   { title: "Staff", url: "Staff", icon: UserCheck },
   { title: "Therapy Scheduling", url: "TherapyScheduling", icon: Calendar },
