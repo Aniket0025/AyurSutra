@@ -1029,8 +1029,7 @@ export default function LandingPageComponent({ onLogin, onNavigateToApp }) {
                       <option value="guardian">Guardian</option>
                       <option value="doctor">Doctor</option>
                       <option value="therapist">Therapist</option>
-                      <option value="admin">Admin</option>
-                      <option value="hospital_admin">Hospital Admin</option>
+                      <option value="clinic_admin">Clinic Admin</option>
                       <option value="support">Support</option>
                       <option value="super_admin">Super Admin</option>
                     </select>

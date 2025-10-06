@@ -12,7 +12,7 @@ router.post('/', requireAuth, withUser, authorize('super_admin','admin','hospita
 router.put('/:id', requireAuth, withUser, updateHospital);
 router.delete('/:id', requireAuth, withUser, authorize('super_admin','admin','hospital_admin'), deleteHospital);
 router.post('/:id/staff', requireAuth, withUser, authorize('super_admin','admin','hospital_admin'), assignStaff);
-router.get('/:id/staff', requireAuth, withUser, authorize('super_admin','admin','hospital_admin','doctor','therapist','patient','support','guardian'), listStaff);
+router.get('/:id/staff', requireAuth, withUser, authorize('super_admin','admin','hospital_admin','doctor','patient','office_executive','guardian'), listStaff);
 router.delete('/:id/staff/:userId', requireAuth, withUser, authorize('super_admin','admin','hospital_admin'), removeStaff);
 
 export default router;

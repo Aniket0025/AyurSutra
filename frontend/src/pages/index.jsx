@@ -12,7 +12,7 @@ import Staff from "./Staff";
 
 import TherapyScheduling from "./TherapyScheduling";
 
-import Guardians from "./Guardians";
+
 
 import Notifications from "./Notifications";
 
@@ -22,19 +22,13 @@ import Analytics from "./Analytics";
 
 import DoctorDashboard from "./DoctorDashboard";
 
-import TherapistDashboard from "./TherapistDashboard";
-
-import GuardianDashboard from "./GuardianDashboard";
-
-import SupportDashboard from "./SupportDashboard";
+import OfficeExecutiveDashboard from "./OfficeExecutiveDashboard";
 
 // Use the same Dashboard component for lowercase route as well
 
 import Hospitals from "./Hospitals";
-import AssignedTherapies from "./AssignedTherapies";
-import TherapyProgress from "./TherapyProgress";
+
 import PatientProgress from "./PatientProgress";
-import PatientFeedback from "./PatientFeedback";
 import PatientAppointments from "./PatientAppointments";
 import DoctorAppointments from "./DoctorAppointments";
 
@@ -57,7 +51,7 @@ const PAGES = {
     
     TherapyScheduling: TherapyScheduling,
     
-    Guardians: Guardians,
+   
     
     Notifications: Notifications,
     
@@ -67,19 +61,16 @@ const PAGES = {
     
     DoctorDashboard: DoctorDashboard,
     
-    TherapistDashboard: TherapistDashboard,
+
     
-    GuardianDashboard: GuardianDashboard,
-    
-    SupportDashboard: SupportDashboard,
+
+    OfficeExecutiveDashboard: OfficeExecutiveDashboard,
     
     dashboard: Dashboard,
     
     Hospitals: Hospitals,
-    AssignedTherapies: AssignedTherapies,
-    TherapyProgress: TherapyProgress,
+   
     PatientProgress: PatientProgress,
-    PatientFeedback: PatientFeedback,
     Appointments: PatientAppointments,
     
 }
@@ -113,57 +104,50 @@ function PagesContent() {
                 {/* lowercase alias for role-based redirect */}
                 <Route path="/patientdashboard" element={<RoleGuard roles={["patient","super_admin"]}> <PatientDashboard /> </RoleGuard>} />
                 
-                <Route path="/Dashboard" element={<RoleGuard roles={["super_admin","hospital_admin","admin"]}> <Dashboard /> </RoleGuard>} />
+                <Route path="/Dashboard" element={<RoleGuard roles={["super_admin","clinic_admin"]}> <Dashboard /> </RoleGuard>} />
                 
-                <Route path="/Patients" element={<RoleGuard roles={["super_admin","hospital_admin","admin","doctor","support","guardian"]}> <Patients /> </RoleGuard>} />
+                <Route path="/Patients" element={<RoleGuard roles={["super_admin","clinic_admin","doctor","office_executive"]}> <Patients /> </RoleGuard>} />
                 {/* lowercase alias for easier navigation */}
-                <Route path="/patients" element={<RoleGuard roles={["super_admin","hospital_admin","admin","doctor","support","guardian"]}> <Patients /> </RoleGuard>} />
+                <Route path="/patients" element={<RoleGuard roles={["super_admin","clinic_admin","doctor","office_executive"]}> <Patients /> </RoleGuard>} />
                 
                 <Route path="/Settings" element={<RoleGuard roles={[]}> <Settings /> </RoleGuard>} />
                 
-                <Route path="/Staff" element={<RoleGuard roles={["super_admin","hospital_admin","admin"]}> <Staff /> </RoleGuard>} />
+                <Route path="/Staff" element={<RoleGuard roles={["super_admin","clinic_admin"]}> <Staff /> </RoleGuard>} />
                 
-                <Route path="/TherapyScheduling" element={<RoleGuard roles={["super_admin","hospital_admin","admin","doctor","therapist","patient"]}> <TherapyScheduling /> </RoleGuard>} />
+                <Route path="/TherapyScheduling" element={<RoleGuard roles={["super_admin","clinic_admin","doctor","patient"]}> <TherapyScheduling /> </RoleGuard>} />
                 
-                <Route path="/Guardians" element={<RoleGuard roles={["super_admin","hospital_admin","admin","doctor"]}> <Guardians /> </RoleGuard>} />
+                <Route path="/" element={<RoleGuard roles={["super_admin","clinic_admin","doctor"]}></RoleGuard>} />
                 
                 <Route path="/Notifications" element={<RoleGuard roles={[]}> <Notifications /> </RoleGuard>} />
                 
-                <Route path="/Reports" element={<RoleGuard roles={["super_admin","hospital_admin","admin"]}> <Reports /> </RoleGuard>} />
+                <Route path="/Reports" element={<RoleGuard roles={["super_admin","clinic_admin"]}> <Reports /> </RoleGuard>} />
                 
-                <Route path="/Analytics" element={<RoleGuard roles={["super_admin","hospital_admin","admin"]}> <Analytics /> </RoleGuard>} />
+                <Route path="/Analytics" element={<RoleGuard roles={["super_admin","clinic_admin"]}> <Analytics /> </RoleGuard>} />
                 
                 <Route path="/DoctorDashboard" element={<RoleGuard roles={["doctor","super_admin"]}> <DoctorDashboard /> </RoleGuard>} />
                 {/* lowercase alias for role-based redirect */}
                 <Route path="/doctordashboard" element={<RoleGuard roles={["doctor","super_admin"]}> <DoctorDashboard /> </RoleGuard>} />
                 
-                <Route path="/TherapistDashboard" element={<RoleGuard roles={["therapist","super_admin"]}> <TherapistDashboard /> </RoleGuard>} />
-                {/* lowercase alias for role-based redirect */}
-                <Route path="/therapistdashboard" element={<RoleGuard roles={["therapist","super_admin"]}> <TherapistDashboard /> </RoleGuard>} />
-                
-                {/* Therapist dedicated routes */}
-                <Route path="/AssignedTherapies" element={<RoleGuard roles={["therapist","super_admin"]}> <AssignedTherapies /> </RoleGuard>} />
-                <Route path="/TherapyProgress" element={<RoleGuard roles={["therapist","super_admin"]}> <TherapyProgress /> </RoleGuard>} />
-                <Route path="/PatientFeedback" element={<RoleGuard roles={["therapist","super_admin"]}> <PatientFeedback /> </RoleGuard>} />
 
-                <Route path="/GuardianDashboard" element={<RoleGuard roles={["guardian","super_admin"]}> <GuardianDashboard /> </RoleGuard>} />
+                
+                {/* Therapist routes removed */}
+
+                <Route path="/" element={<RoleGuard roles={["super_admin"]}> <Dashboard /> </RoleGuard>} />
+ 
+                <Route path="/OfficeExecutiveDashboard" element={<RoleGuard roles={["office_executive","super_admin"]}> <OfficeExecutiveDashboard /> </RoleGuard>} />
                 {/* lowercase alias for role-based redirect */}
-                <Route path="/guardiandashboard" element={<RoleGuard roles={["guardian","super_admin"]}> <GuardianDashboard /> </RoleGuard>} />
+                <Route path="/office_executivedashboard" element={<RoleGuard roles={["office_executive","super_admin"]}> <OfficeExecutiveDashboard /> </RoleGuard>} />
                 
-                <Route path="/SupportDashboard" element={<RoleGuard roles={["support","super_admin"]}> <SupportDashboard /> </RoleGuard>} />
-                {/* lowercase alias for role-based redirect */}
-                <Route path="/supportdashboard" element={<RoleGuard roles={["support","super_admin"]}> <SupportDashboard /> </RoleGuard>} />
+                <Route path="/dashboard" element={<RoleGuard roles={["super_admin","clinic_admin"]}> <Dashboard /> </RoleGuard>} />
                 
-                <Route path="/dashboard" element={<RoleGuard roles={["super_admin","hospital_admin","admin"]}> <Dashboard /> </RoleGuard>} />
-                
-                <Route path="/Hospitals" element={<RoleGuard roles={["super_admin","admin","hospital_admin"]}> <Hospitals /> </RoleGuard>} />
+                <Route path="/Hospitals" element={<RoleGuard roles={["super_admin","clinic_admin"]}> <Hospitals /> </RoleGuard>} />
                 
                 {/* Patient appointments */}
                 <Route path="/Appointments" element={<RoleGuard roles={["patient","super_admin"]}> <PatientAppointments /> </RoleGuard>} />
                 {/* Patient Progress */}
                 <Route path="/PatientProgress" element={<RoleGuard roles={["patient","super_admin"]}> <PatientProgress /> </RoleGuard>} />
                 {/* Doctor/Therapist appointments management */}
-                <Route path="/DoctorAppointments" element={<RoleGuard roles={["doctor","therapist","super_admin"]}> <DoctorAppointments /> </RoleGuard>} />
+                <Route path="/DoctorAppointments" element={<RoleGuard roles={["doctor","super_admin"]}> <DoctorAppointments /> </RoleGuard>} />
                 
             </Routes>
         </Layout>

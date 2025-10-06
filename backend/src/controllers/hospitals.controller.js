@@ -24,7 +24,7 @@ export const listHospitals = async (req, res) => {
       const hospital = await Hospital.findById(req.user.hospital_id);
       return res.json({ hospitals: hospital ? [hospital] : [] });
     }
-    // Other roles (patient, doctor, therapist, support, guardian): allow reading all hospitals for selection/booking
+    // Other roles (patient, doctor, office_executive, guardian): allow reading all hospitals for selection/booking
     const hospitals = await Hospital.find();
     return res.json({ hospitals });
   } catch (e) {
@@ -38,13 +38,13 @@ export const listStaff = async (req, res) => {
     // Scope rules:
     // - super_admin/admin: can view any hospital's staff
     // - hospital_admin: can view only their own hospital's staff
-    // - other roles (patient/doctor/therapist/support/guardian): can view any hospital's staff (read-only for booking)
+    // - other roles (patient/doctor/office_executive/guardian): can view any hospital's staff (read-only for booking)
     if (isHospitalAdmin(req.user) && !isSuperAdmin(req.user) && !isAdmin(req.user)) {
       if (!req.user.hospital_id || String(req.user.hospital_id) !== String(hospitalId)) {
         return res.status(403).json({ message: 'Forbidden' });
       }
     }
-    const allowedRoles = ['doctor','therapist','support'];
+    const allowedRoles = ['doctor','office_executive'];
     const users = await User.find({ hospital_id: hospitalId, role: { $in: allowedRoles } });
     return res.json({ staff: users.map(u => u.toJSON()) });
   } catch (e) {
@@ -63,7 +63,7 @@ export const removeStaff = async (req, res) => {
     }
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
-    const allowedRoles = new Set(['doctor','therapist','support']);
+    const allowedRoles = new Set(['doctor','office_executive']);
     if (!allowedRoles.has(user.role)) {
       return res.status(400).json({ message: 'Cannot remove this role via hospital staff endpoint' });
     }
@@ -98,7 +98,7 @@ export const assignStaff = async (req, res) => {
       }
     }
 
-    const allowedRoles = new Set(['doctor', 'therapist', 'support']);
+    const allowedRoles = new Set(['doctor', 'office_executive']);
     if (!allowedRoles.has(String(role))) {
       return res.status(400).json({ message: 'Invalid role' });
     }

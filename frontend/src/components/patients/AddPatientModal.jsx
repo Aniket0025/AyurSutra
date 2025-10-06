@@ -16,10 +16,10 @@ export default function AddPatientModal({ isOpen, onClose, onPatientAdded, patie
     currentConditions: '',
     allergies: '',
     assignedDoctor: '',
-    guardianId: '', // New field for guardian assignment
+    Id: '', // New field for  assignment
     progressScore: 0
   });
-  const [guardians, setGuardians] = useState([]); // New state for guardians
+  const [s, sets] = useState([]); // New state for s
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -36,7 +36,7 @@ export default function AddPatientModal({ isOpen, onClose, onPatientAdded, patie
         currentConditions: Array.isArray(patient.current_conditions) ? patient.current_conditions.join(', ') : '',
         allergies: Array.isArray(patient.allergies) ? patient.allergies.join(', ') : '',
         assignedDoctor: patient.assigned_doctor || '',
-        guardianId: patient.guardian_ids?.[0] || '', // Assuming one guardian for simplicity in UI
+        Id: patient._ids?.[0] || '', // Assuming one  for simplicity in UI
         progressScore: patient.progress_score || 0
       });
     } else if (!patient && isOpen) {
@@ -51,22 +51,22 @@ export default function AddPatientModal({ isOpen, onClose, onPatientAdded, patie
         currentConditions: '',
         allergies: '',
         assignedDoctor: currentUser?.full_name || '', // Default to current doctor
-        guardianId: '', // Reset guardianId for new patient
+        Id: '', // Reset Id for new patient
         progressScore: 0
       });
     }
 
-    // Load potential guardians
-    const loadGuardians = async () => {
+    // Load potential s
+    const loads = async () => {
       try {
-        const guardianUsers = await User.filter({ role: 'guardian' });
-        setGuardians(guardianUsers);
+        const Users = await User.filter({ role: '' });
+        sets(Users);
       } catch (err) {
-        console.error("Failed to load guardians", err);
+        console.error("Failed to load s", err);
       }
     };
     if (isOpen) {
-      loadGuardians();
+      loads();
     }
   }, [patient, isOpen, currentUser]); // Added currentUser to dependencies
 
@@ -101,7 +101,7 @@ export default function AddPatientModal({ isOpen, onClose, onPatientAdded, patie
         full_name: formData.fullName,
         phone: formData.phone,
         email: formData.email,
-        guardian_ids: formData.guardianId ? [formData.guardianId] : [], // Include guardian_ids
+        _ids: formData.Id ? [formData.Id] : [], // Include _ids
         hospital_id: currentUser?.hospital_id, // Ensure hospital_id is set
       };
 
@@ -190,15 +190,15 @@ export default function AddPatientModal({ isOpen, onClose, onPatientAdded, patie
               <div className="bg-gradient-to-r from-teal-50 to-cyan-50 p-6 rounded-2xl mt-6 space-y-4">
                 <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                   <Shield className="w-5 h-5 text-teal-600" />
-                  Guardian Assignment
+                   Assignment
                 </h3>
-                <select name="guardianId" value={formData.guardianId} onChange={handleChange} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 bg-white">
-                  <option value="">No Guardian Assigned</option>
-                  {guardians.map(g => (
+                <select name="Id" value={formData.Id} onChange={handleChange} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 bg-white">
+                  <option value="">No  Assigned</option>
+                  {s.map(g => (
                     <option key={g.id} value={g.id}>{g.full_name} ({g.email})</option>
                   ))}
                 </select>
-                <p className="text-xs text-gray-500">Select from existing guardians. New guardians can be invited from the Staff page.</p>
+                <p className="text-xs text-gray-500">Select from existing s. New s can be invited from the Staff page.</p>
               </div>
             </div>
 

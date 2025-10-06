@@ -1,68 +1,43 @@
-
-
 import React, { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import PropTypes from 'prop-types';
+import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { User } from "@/services";
 import LandingPageComponent from "../components/landing/LandingPageComponent";
 import AIAvatarAssistant from "../components/avatar/AIAvatarAssistant";
 import AIDoctorBot from "../components/doctor/AIDoctorBot";
 import NotificationSystem from "../components/shared/NotificationSystem";
-import HospitalRegistrationModal from "../components/auth/HospitalRegistrationModal";
-import RoleSelectionModal from "../components/auth/RoleSelectionModal";
+// import HospitalRegistrationModal from "../components/auth/HospitalRegistrationModal";
+// import RoleSelectionModal from "../components/auth/RoleSelectionModal";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Home, Users, Calendar, Bell, BarChart3, FileText, Settings, LogOut, Menu, X, Stethoscope, UserCheck, Shield, Activity, ChevronDown, Building
+  Home, Users, Calendar, Bell, BarChart3, FileText, Settings, LogOut, Menu, X, Stethoscope, UserCheck, Activity, ChevronDown, Building
 } from "lucide-react";
-
-// --- IMPORTANT: SUPER ADMIN CONFIGURATION ---
 const SUPER_ADMIN_EMAIL = 'op940356622@gmail.com';
-
 // --- Role-Specific Navigation Menus ---
 const superAdminNavItems = [
-  // Global/Super Admin
   { title: "Global Dashboard", url: "Dashboard", icon: Home },
   { title: "Hospitals", url: "Hospitals", icon: Building },
   { title: "Global Analytics", url: "Analytics", icon: BarChart3 },
   { title: "Global Reports", url: "Reports", icon: FileText },
   { title: "All Patients", url: "Patients", icon: Users },
-
-  // Admin/Operations
   { title: "Staff", url: "Staff", icon: UserCheck },
   { title: "Therapy Scheduling", url: "TherapyScheduling", icon: Calendar },
-  { title: "Guardians", url: "Guardians", icon: Shield },
   { title: "Notifications", url: "Notifications", icon: Bell },
-
-  // Role-specific dashboards
   { title: "Doctor Dashboard", url: "DoctorDashboard", icon: Home },
-  { title: "Therapist Dashboard", url: "TherapistDashboard", icon: Home },
   { title: "Patient Dashboard", url: "PatientDashboard", icon: Home },
-  { title: "Guardian Dashboard", url: "GuardianDashboard", icon: Home },
-  { title: "Support Dashboard", url: "SupportDashboard", icon: Home },
-
-  // Settings
+  { title: "Office Executive Dashboard", url: "OfficeExecutiveDashboard", icon: Home },
   { title: "Settings", url: "Settings", icon: Settings },
 ];
 
-const hospitalAdminNavItems = [
-  { title: "Hospital Dashboard", url: "Dashboard", icon: Home },
+const clinicAdminNavItems = [
+  { title: "Clinic Dashboard", url: "Dashboard", icon: Home },
   { title: "Patients", url: "Patients", icon: Users },
-  { title: "Staff", url: "Staff", icon: UserCheck },
+  { title: "Doctors & Staff", url: "Staff", icon: UserCheck },
   { title: "Therapy Scheduling", url: "TherapyScheduling", icon: Calendar },
-  { title: "Analytics", url: "Analytics", icon: BarChart3 },
-  { title: "Reports", url: "Reports", icon: FileText }
-];
-
-const adminNavItems = [
-  { title: "Admin Dashboard", url: "Dashboard", icon: Home },
-  { title: "Assign Admin", url: "Hospitals", icon: Building },
-  { title: "Patients", url: "Patients", icon: Users },
-  { title: "Staff", url: "Staff", icon: UserCheck },
-  { title: "Therapy Scheduling", url: "TherapyScheduling", icon: Calendar },
-  { title: "Guardians", url: "Guardians", icon: Shield },
   { title: "Analytics", url: "Analytics", icon: BarChart3 },
   { title: "Reports", url: "Reports", icon: FileText },
-  { title: "Notifications", url: "Notifications", icon: Bell }
+  { title: "Notifications", url: "Notifications", icon: Bell },
 ];
 
 const doctorNavItems = [
@@ -76,45 +51,27 @@ const doctorNavItems = [
   { title: "Profile & Settings", url: "Settings", icon: Settings },
 ];
 
-const therapistNavItems = [
-  { title: "Dashboard Overview", url: "TherapistDashboard", icon: Home },
-  { title: "Assigned Therapies", url: "AssignedTherapies", icon: Users },
-  { title: "Therapy Progress", url: "TherapyProgress", icon: Activity },
-  { title: "Patient Feedback", url: "PatientFeedback", icon: FileText },
-  { title: "Notifications", url: "Notifications", icon: Bell },
-  { title: "Profile/Settings", url: "Settings", icon: Settings },
-  { title: "My Sessions", url: "TherapyScheduling", icon: Calendar }
-];
-
 const patientNavItems = [
   { title: "My Dashboard", url: "PatientDashboard", icon: Home },
   { title: "Appointments", url: "Appointments", icon: Calendar },
   { title: "My Schedule", url: "TherapyScheduling", icon: Calendar },
-  { title: "Notifications", url: "Notifications", icon: Bell }
+  { title: "Notifications", url: "Notifications", icon: Bell },
 ];
 
-const guardianNavItems = [
-  { title: "Guardian Dashboard", url: "GuardianDashboard", icon: Home },
-  { title: "Patient Progress", url: "Patients", icon: Activity }
-];
-
-const supportNavItems = [
-    { title: "Support Dashboard", url: "SupportDashboard", icon: Home },
-    { title: "Patient Registration", url: "Patients", icon: Users }
+const officeExecutiveNavItems = [
+  { title: "Office Executive Dashboard", url: "OfficeExecutiveDashboard", icon: Home },
+  { title: "Patient Registration", url: "Patients", icon: Users },
+  { title: "Settings", url: "Settings", icon: Settings },
 ];
 
 const navMap = {
-    super_admin: superAdminNavItems,
-    hospital_admin: hospitalAdminNavItems,
-    admin: adminNavItems,
-    doctor: doctorNavItems,
-    therapist: therapistNavItems,
-    patient: patientNavItems,
-    guardian: guardianNavItems,
-    support: supportNavItems
+  super_admin: superAdminNavItems,
+  clinic_admin: clinicAdminNavItems,
+  doctor: doctorNavItems,
+  patient: patientNavItems,
+  office_executive: officeExecutiveNavItems,
 };
 
-// --- Loading Screen with Enhanced Animation ---
 const LoadingScreen = ({ message = "Loading AyurSutra..." }) => (
   <div className="min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-purple-50 flex items-center justify-center">
     <div className="flex flex-col items-center gap-6">
@@ -133,6 +90,10 @@ const LoadingScreen = ({ message = "Loading AyurSutra..." }) => (
     </div>
   </div>
 );
+
+LoadingScreen.propTypes = {
+  message: PropTypes.string
+};
 
 // --- Enhanced App Shell with Fixed Mobile Menu ---
 const AppShell = ({ currentUser, handleLogout, children, navigateToLanding }) => {
@@ -527,13 +488,17 @@ const AppShell = ({ currentUser, handleLogout, children, navigateToLanding }) =>
   );
 };
 
+AppShell.propTypes = {
+  currentUser: PropTypes.object,
+  handleLogout: PropTypes.func.isRequired,
+  children: PropTypes.node.isRequired,
+  navigateToLanding: PropTypes.func.isRequired
+};
+
 // --- Main Layout Component ---
-export default function Layout({ children, currentPageName }) {
+export default function Layout({ children }) {
   const [currentUser, setCurrentUser] = useState(undefined); 
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [showLandingPage, setShowLandingPage] = useState(false);
-  const [showRoleSelection, setShowRoleSelection] = useState(false);
-  const location = useLocation();
 
   const loadUser = async () => {
     try {
@@ -562,24 +527,20 @@ export default function Layout({ children, currentPageName }) {
         if (user && window.showNotification && !sessionStorage.getItem('welcomeShown')) {
           const roleDisplayNames = {
             'super_admin': 'Super Administrator',
-            'hospital_admin': 'Hospital Administrator', 
-            'admin': 'Administrator',
+            'clinic_admin': 'Clinic Administrator',
             'doctor': 'Doctor',
-            'therapist': 'Therapist',
             'patient': 'Patient',
             'guardian': 'Guardian',
-            'support': 'Support Staff'
+            'office_executive': 'Office Executive'
           };
 
           const welcomeMessages = {
             'super_admin': 'You have full system access. Monitor all hospitals and manage the entire platform.',
-            'hospital_admin': 'Welcome to your hospital management dashboard. Oversee your facility and staff.',
-            'admin': 'Manage patients, staff, and daily operations from your administrative dashboard.',
+            'clinic_admin': 'Welcome to your clinic management dashboard. Manage doctors, staff, patients, and daily operations.',
             'doctor': 'Access your patient list, schedule consultations, and manage treatment plans.',
-            'therapist': 'View your therapy schedule, track session progress, and update treatment notes.',
             'patient': 'Track your Panchakarma journey, view appointments, and monitor your progress.',
             'guardian': 'Stay updated on your loved one\'s treatment progress and upcoming sessions.',
-            'support': 'Help with patient registration, payments, and administrative support.'
+            'office_executive': 'Help with patient registration, payments, and administrative work.'
           };
 
           // Only show notification if user has completed role selection
@@ -596,8 +557,7 @@ export default function Layout({ children, currentPageName }) {
           }
         }
 
-        // Skip role selection screen; go directly to app UI
-        setShowRoleSelection(false);
+        // Role selection flow disabled; proceed to app UI
 
       } else {
         setCurrentUser(null);
@@ -643,29 +603,10 @@ export default function Layout({ children, currentPageName }) {
     setShowLandingPage(false);
   };
   
-  const getDashboardUrlForRole = (role) => {
-      switch(role) {
-          case 'super_admin':
-          case 'hospital_admin':
-          case 'admin':
-              return createPageUrl('Dashboard');
-          case 'doctor':
-              return createPageUrl('DoctorDashboard');
-          case 'therapist':
-              return createPageUrl('TherapistDashboard');
-          case 'patient':
-              return createPageUrl('PatientDashboard');
-          case 'guardian':
-              return createPageUrl('GuardianDashboard');
-          case 'support':
-              return createPageUrl('SupportDashboard');
-          default:
-              return createPageUrl('Dashboard');
-      }
-  }
+  // helper removed (unused)
 
-  if (currentUser === undefined || isLoggingIn) {
-    return <LoadingScreen message={isLoggingIn ? "Processing login..." : "Initializing AyurSutra..."} />;
+  if (currentUser === undefined) {
+    return <LoadingScreen message={"Initializing AyurSutra..."} />;
   }
 
   // Role selection is disabled; do not present modal
@@ -718,4 +659,8 @@ export default function Layout({ children, currentPageName }) {
     </div>
   );
 }
+
+Layout.propTypes = {
+  children: PropTypes.element.isRequired
+};
 

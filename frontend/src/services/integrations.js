@@ -8,7 +8,7 @@ export async function InvokeLLM({ prompt }) {
   if (lower.includes('diet') || lower.includes('food')) {
     return 'Favor fresh, warm, and lightly spiced foods. Stay hydrated and maintain regular meal times. For tailored advice, consult a practitioner.';
   }
-  return 'Namaste! I am your local AyurSutra assistant. How can I support your wellness journey today?';
+  return 'Namaste! I am your local AyurSutra assistant. How can I assist your wellness journey today?';
 }
 
 export async function SendEmail({ to, subject, body }) {

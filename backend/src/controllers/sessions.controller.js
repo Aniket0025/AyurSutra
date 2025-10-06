@@ -3,16 +3,15 @@ import { TherapySession } from '../models/TherapySession.js';
 function isSuper(user) { return user?.role === 'super_admin'; }
 function isHospAdmin(user) { return user?.role === 'hospital_admin' || user?.role === 'admin'; }
 function isDoctor(user) { return user?.role === 'doctor'; }
-function isTherapist(user) { return user?.role === 'therapist'; }
+// isTherapist removed - role no longer exists
 
 export const listSessions = async (req, res) => {
   try {
     const filter = {};
     if (!isSuper(req.user)) {
       if (req.user.hospital_id) filter.hospital_id = req.user.hospital_id;
-      // Limit doctor/therapist to assigned sessions
+      // Limit doctor to assigned sessions
       if (isDoctor(req.user)) filter.doctor_id = req.user._id;
-      if (isTherapist(req.user)) filter.therapist_id = req.user._id;
     }
     const sessions = await TherapySession.find(filter).sort({ scheduled_at: 1 });
     res.json({ sessions });
@@ -62,11 +61,11 @@ export const updateSession = async (req, res) => {
         existing.approvals.admin_approved = !!req.body.approvals.admin_approved;
       }
       if (req.body.scheduled_at) existing.scheduled_at = new Date(req.body.scheduled_at);
-      if (req.body.therapist_id) existing.therapist_id = req.body.therapist_id;
+      // therapist_id removed
       if (req.body.doctor_id) existing.doctor_id = req.body.doctor_id;
     }
-    // Therapist can mark completed and add outcomes
-    if (isTherapist(req.user)) {
+    // Doctor can mark completed and add outcomes
+    if (isDoctor(req.user)) {
       if (req.body.status === 'completed') existing.status = 'completed';
       if (req.body.outcomes) {
         existing.outcomes = { ...existing.outcomes, ...req.body.outcomes };

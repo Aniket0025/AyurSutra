@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { User } from "@/services";
 import { createPageUrl } from "@/utils";
@@ -11,17 +11,6 @@ export default function SignIn() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleBack = () => {
-    try {
-      if (window.history.length > 1) {
-        window.history.back();
-      } else {
-        window.location.href = "/";
-      }
-    } catch {
-      window.location.href = "/";
-    }
-  };
 
   const roleToPage = (role = "") => {
     switch (String(role).toLowerCase()) {
@@ -29,12 +18,10 @@ export default function SignIn() {
         return "PatientDashboard";
       case "doctor":
         return "DoctorDashboard";
-      case "therapist":
-        return "TherapistDashboard";
       case "guardian":
         return "GuardianDashboard";
-      case "support":
-        return "SupportDashboard";
+      case "office_executive":
+        return "OfficeExecutiveDashboard";
       case "hospital_admin":
       case "admin":
       default:
@@ -55,7 +42,7 @@ export default function SignIn() {
       }
       const target = roleToPage(user.role);
       window.location.href = createPageUrl(target);
-    } catch (err) {
+    } catch {
       setError("Failed to sign in. Please try again.");
       setLoading(false);
     }
@@ -155,7 +142,7 @@ export default function SignIn() {
         </form>
 
         <p className="text-sm text-gray-600 mt-6 text-center">
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Link className="text-blue-600 hover:underline font-medium" to={createPageUrl("SignUp")}>
             Create one
           </Link>

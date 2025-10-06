@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import PropTypes from 'prop-types';
 import { motion } from 'framer-motion';
-import { User as UserIcon, Stethoscope, ArrowRight, X } from 'lucide-react';
+import { User as UserIcon, Stethoscope, ArrowRight } from 'lucide-react';
 import { User } from '@/services';
 import { createPageUrl } from '@/utils';
 
 export default function RoleSelectionModal({ isOpen, onComplete, currentUser }) {
+  // PropTypes will be defined at the bottom
+
   const [selectedRole, setSelectedRole] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -32,7 +35,7 @@ export default function RoleSelectionModal({ isOpen, onComplete, currentUser }) 
         // then they can specify their exact role during hospital registration
         const updateData = {
           has_selected_role: true,
-          role: 'admin', // Default to admin until they register hospital
+          role: 'clinic_admin', // Default to clinic_admin until they register hospital
           // Ensure we preserve existing user data
           full_name: currentUser.full_name,
           email: currentUser.email
@@ -132,7 +135,6 @@ export default function RoleSelectionModal({ isOpen, onComplete, currentUser }) 
                 selectedRole === 'patient' ? 'text-green-600' : 'text-green-500'
               }`} />
               <h3 className="text-xl font-bold text-gray-800">I am a Patient</h3>
-              <p className="text-gray-500 text-sm mt-1">or a guardian</p>
             </motion.div>
 
             <motion.div
@@ -146,7 +148,7 @@ export default function RoleSelectionModal({ isOpen, onComplete, currentUser }) 
                 selectedRole === 'professional' ? 'text-blue-600' : 'text-blue-500'
               }`} />
               <h3 className="text-xl font-bold text-gray-800">Healthcare Professional</h3>
-              <p className="text-gray-500 text-sm mt-1">Doctor, Therapist, Admin</p>
+              <p className="text-gray-500 text-sm mt-1">Doctor, Admin</p>
             </motion.div>
           </div>
 
@@ -181,3 +183,12 @@ export default function RoleSelectionModal({ isOpen, onComplete, currentUser }) 
     </div>
   );
 }
+
+RoleSelectionModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onComplete: PropTypes.func.isRequired,
+  currentUser: PropTypes.shape({
+    full_name: PropTypes.string,
+    email: PropTypes.string
+  })
+};

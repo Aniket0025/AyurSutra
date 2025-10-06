@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { User } from "@/services";
 import { createPageUrl } from "@/utils";
@@ -15,17 +15,6 @@ export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleBack = () => {
-    try {
-      if (window.history.length > 1) {
-        window.history.back();
-      } else {
-        window.location.href = "/";
-      }
-    } catch {
-      window.location.href = "/";
-    }
-  };
 
   const roleToPage = (r = "") => {
     switch (String(r).toLowerCase()) {
@@ -33,12 +22,10 @@ export default function SignUp() {
         return "PatientDashboard";
       case "doctor":
         return "DoctorDashboard";
-      case "therapist":
-        return "TherapistDashboard";
       case "guardian":
         return "GuardianDashboard";
-      case "support":
-        return "SupportDashboard";
+      case "office_executive":
+        return "OfficeExecutiveDashboard";
       case "hospital_admin":
       case "admin":
       default:

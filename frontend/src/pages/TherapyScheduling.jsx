@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
+/* eslint-disable react/prop-types */
+import { useState, useEffect, useCallback } from "react";
 import { TherapySession } from "@/services";
 import { Patient } from "@/services";
 import { User } from "@/services";
@@ -8,14 +9,10 @@ import {
   Clock,
   Users,
   Plus,
-  Filter,
-  Search,
   ChevronLeft,
   ChevronRight,
   Activity,
   CheckCircle,
-  AlertCircle,
-  Eye,
   Edit,
   Trash2,
   User as UserIcon,
@@ -27,10 +24,11 @@ import {
   Heart,
   Building
 } from "lucide-react";
-import { format, addDays, startOfWeek, endOfWeek, isToday, isSameDay, parseISO } from "date-fns";
+import { format, addDays, startOfWeek, endOfWeek, isToday } from "date-fns";
+import PropTypes from 'prop-types';
 import ScheduleSessionModal from "../components/scheduling/ScheduleSessionModal";
 
-export default function TherapyScheduling({ currentUser }) {
+function TherapyScheduling({ currentUser }) {
   const [sessions, setSessions] = useState([]);
   const [patients, setPatients] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,7 +37,6 @@ export default function TherapyScheduling({ currentUser }) {
   const [viewType, setViewType] = useState('week');
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
 
   const loadData = useCallback(async () => {
     // Resolve user from props or fallback to API to ensure rendering
@@ -54,13 +51,12 @@ export default function TherapyScheduling({ currentUser }) {
     try {
       console.log("Loading therapy scheduling data for user:", user);
 
-      // Prepare filters
       let patientFilter = {};
       let sessionFilter = {};
 
       if (user.role === 'super_admin') {
         console.log('Super admin: Loading all data');
-      } else if (user.hospital_id && ['hospital_admin', 'admin', 'doctor', 'therapist'].includes(user.role)) {
+      } else if (user.hospital_id && ['clinic_admin', 'doctor'].includes(user.role)) {
         patientFilter = { hospital_id: user.hospital_id };
         sessionFilter = { hospital_id: user.hospital_id };
         console.log('Hospital-based user: Filtering by hospital_id:', user.hospital_id);
@@ -189,7 +185,7 @@ export default function TherapyScheduling({ currentUser }) {
       try {
         const parsedDate = format(new Date(sessionDate), 'yyyy-MM-dd');
         return parsedDate === dateString;
-      } catch (error) {
+      } catch {
         console.warn("Invalid date format in session:", sessionDate);
         return false;
       }
@@ -339,7 +335,8 @@ export default function TherapyScheduling({ currentUser }) {
     return therapyVisuals[therapyType] || therapyVisuals.default;
   };
 
-  const StatCard = ({ title, value, icon: Icon, color }) => (
+  const StatCard = ({ title, value, icon: Icon, color }) => {
+    return (
     <motion.div 
       whileHover={{ scale: 1.02, y: -2 }}
       className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 md:p-6 shadow-lg border border-white/50 hover:shadow-xl transition-all duration-300"
@@ -359,7 +356,15 @@ export default function TherapyScheduling({ currentUser }) {
         </div>
       </div>
     </motion.div>
-  );
+    );
+  };
+
+  StatCard.propTypes = {
+    title: PropTypes.string.isRequired,
+    value: PropTypes.number.isRequired,
+    icon: PropTypes.elementType.isRequired,
+    color: PropTypes.string.isRequired
+  };
 
   const SessionCard = ({ session }) => {
     const visual = getTherapyVisual(session.therapy_type);
@@ -419,6 +424,17 @@ export default function TherapyScheduling({ currentUser }) {
         </div>
       </motion.div>
     );
+  };
+
+  SessionCard.propTypes = {
+    session: PropTypes.shape({
+      id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+      therapy_type: PropTypes.string.isRequired,
+      patient_id: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+      scheduled_time: PropTypes.string,
+      scheduled_date: PropTypes.string,
+      room_number: PropTypes.string
+    }).isRequired
   };
 
   if (isLoading) {
@@ -672,3 +688,9 @@ export default function TherapyScheduling({ currentUser }) {
     </div>
   );
 }
+
+TherapyScheduling.propTypes = {
+  currentUser: PropTypes.object
+};
+
+export default TherapyScheduling;

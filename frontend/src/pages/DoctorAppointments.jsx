@@ -1,9 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Appointments, User, Patient } from '@/services';
 import { Calendar, Users, CheckCircle2, XCircle, Clock } from 'lucide-react';
 
 export default function DoctorAppointments({ currentUser }) {
-  const [effectiveUser, setEffectiveUser] = useState(currentUser);
+  // PropTypes will be defined at the bottom
+
+
   const [list, setList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [patientMap, setPatientMap] = useState({}); // id -> name/email
@@ -12,7 +14,6 @@ export default function DoctorAppointments({ currentUser }) {
     (async () => {
       let me = currentUser;
       if (!me) me = await User.me();
-      setEffectiveUser(me);
       await reload();
       setIsLoading(false);
     })();
@@ -159,3 +160,61 @@ function Section({ title, items, empty, patientMap }) {
     </div>
   );
 }
+
+DoctorAppointments.propTypes = {
+  currentUser: (props, propName, componentName) => {
+    if (props[propName] && typeof props[propName] !== 'object') {
+      return new Error(`Invalid prop '${propName}' supplied to '${componentName}'. Expected an object.`);
+    }
+  }
+};
+
+function isNode(prop, propName, componentName) {
+  // Accepts anything React can render
+  const value = prop[propName];
+  if (value !== undefined && typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'object' && typeof value !== 'function') {
+    return new Error(`Invalid prop '${propName}' supplied to '${componentName}'. Expected a renderable node.`);
+  }
+}
+
+SummaryCard.propTypes = {
+  title: (props, propName, componentName) => {
+    if (typeof props[propName] !== 'string') {
+      return new Error(`Invalid prop '${propName}' supplied to '${componentName}'. Expected a string.`);
+    }
+  },
+  value: (props, propName, componentName) => {
+    if (typeof props[propName] !== 'number') {
+      return new Error(`Invalid prop '${propName}' supplied to '${componentName}'. Expected a number.`);
+    }
+  },
+  icon: isNode,
+  className: (props, propName, componentName) => {
+    if (props[propName] && typeof props[propName] !== 'string') {
+      return new Error(`Invalid prop '${propName}' supplied to '${componentName}'. Expected a string.`);
+    }
+  }
+};
+
+Section.propTypes = {
+  title: (props, propName, componentName) => {
+    if (typeof props[propName] !== 'string') {
+      return new Error(`Invalid prop '${propName}' supplied to '${componentName}'. Expected a string.`);
+    }
+  },
+  items: (props, propName, componentName) => {
+    if (!Array.isArray(props[propName])) {
+      return new Error(`Invalid prop '${propName}' supplied to '${componentName}'. Expected an array.`);
+    }
+  },
+  empty: (props, propName, componentName) => {
+    if (typeof props[propName] !== 'string') {
+      return new Error(`Invalid prop '${propName}' supplied to '${componentName}'. Expected a string.`);
+    }
+  },
+  patientMap: (props, propName, componentName) => {
+    if (props[propName] && typeof props[propName] !== 'object') {
+      return new Error(`Invalid prop '${propName}' supplied to '${componentName}'. Expected an object.`);
+    }
+  }
+};

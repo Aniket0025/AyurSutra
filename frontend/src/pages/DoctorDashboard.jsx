@@ -1,4 +1,3 @@
-import React from 'react';
 import { Stethoscope, Users, Calendar } from 'lucide-react';
 
 export default function DoctorDashboard() {
@@ -9,7 +8,7 @@ export default function DoctorDashboard() {
           <Stethoscope className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Doctor's Dashboard</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Doctor&apos;s Dashboard</h1>
           <p className="text-gray-500">Your central hub for patient care and scheduling.</p>
         </div>
       </div>

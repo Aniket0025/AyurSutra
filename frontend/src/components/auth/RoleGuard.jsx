@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { User } from '@/services';
 
+import PropTypes from 'prop-types';
+
 export default function RoleGuard({ roles = [], children }) {
   const [allowed, setAllowed] = useState(undefined);
   const [me, setMe] = useState(null);
@@ -21,13 +23,13 @@ export default function RoleGuard({ roles = [], children }) {
           return;
         }
         setAllowed(roles.includes(user.role) || user.role === 'super_admin');
-      } catch (e) {
+      } catch {
         if (!mounted) return;
         setAllowed(false);
       }
     })();
     return () => { mounted = false; };
-  }, [roles.join(',')]);
+  }, [roles]);
 
   if (allowed === undefined) {
     return (
@@ -52,3 +54,8 @@ export default function RoleGuard({ roles = [], children }) {
   }
   return <>{children}</>;
 }
+
+RoleGuard.propTypes = {
+  roles: PropTypes.array,
+  children: PropTypes.node
+};

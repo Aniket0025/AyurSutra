@@ -65,7 +65,7 @@ export default function Staff({ currentUser }) {
         setHospitals(hospitalMap);
         const lists = await Promise.all(hospitalData.map(h => Hospital.listStaff(h.id).catch(() => [])));
         staffData = lists.flat();
-      } else if (userCtx.role === 'hospital_admin' || userCtx.role === 'admin') {
+      } else if (userCtx.role === 'clinic_admin') {
         if (userCtx.hospital_id) {
           staffData = await Hospital.listStaff(userCtx.hospital_id);
         } else {
@@ -127,8 +127,8 @@ export default function Staff({ currentUser }) {
     const colors = {
       doctor: 'bg-blue-100 text-blue-700',
       therapist: 'bg-green-100 text-green-700',
-      hospital_admin: 'bg-purple-100 text-purple-700',
-      support: 'bg-orange-100 text-orange-700',
+      clinic_admin: 'bg-purple-100 text-purple-700',
+      office_executive: 'bg-orange-100 text-orange-700',
     };
     return colors[role] || 'bg-gray-100 text-gray-700';
   };
@@ -156,7 +156,7 @@ export default function Staff({ currentUser }) {
       </div>
 
       {/* If hospital admin without hospital_id, guide to assign hospital */}
-      {effectiveUser?.role === 'hospital_admin' && !effectiveUser?.hospital_id && (
+      {effectiveUser?.role === 'clinic_admin' && !effectiveUser?.hospital_id && (
         <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-xl mb-6">
           Your account is not linked to a hospital yet. Please go to the Hospitals page and assign your hospital to start adding staff.
         </div>
@@ -218,8 +218,8 @@ export default function Staff({ currentUser }) {
               <option value="all">All Roles</option>
               <option value="doctor">Doctors</option>
               <option value="therapist">Therapists</option>
-              <option value="hospital_admin">Admins</option>
-              <option value="support">Support</option>
+              <option value="clinic_admin">Clinic Admins</option>
+              <option value="office_executive">Office Executive</option>
             </select>
             {effectiveUser?.role === 'super_admin' && (
               <select value={filterHospital} onChange={(e) => setFilterHospital(e.target.value)} className="px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
@@ -254,8 +254,8 @@ export default function Staff({ currentUser }) {
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">Support</p>
-              <p className="text-3xl font-bold text-gray-900">{filteredStaff.filter(s => s.role === 'support').length}</p>
+              <p className="text-sm font-medium text-gray-500 mb-1">Office Executive</p>
+              <p className="text-3xl font-bold text-gray-900">{filteredStaff.filter(s => s.role === 'office_executive').length}</p>
             </div>
             <div className="w-12 h-12 bg-orange-100 text-orange-700 rounded-2xl flex items-center justify-center font-bold">Sp</div>
           </div>
@@ -296,18 +296,18 @@ export default function Staff({ currentUser }) {
           </div>
         </section>
 
-        {/* Support */}
+        {/* Office Executive */}
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-800">Support Staff</h2>
-            <span className="text-sm text-gray-500">{filteredStaff.filter(s => s.role === 'support').length} total</span>
+            <h2 className="text-xl font-semibold text-gray-800">Office Executive Staff</h2>
+            <span className="text-sm text-gray-500">{filteredStaff.filter(s => s.role === 'office_executive').length} total</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredStaff.filter(s => s.role === 'support').map((staffMember) => (
+            {filteredStaff.filter(s => s.role === 'office_executive').map((staffMember) => (
               <StaffCard key={staffMember.id} staffMember={staffMember} />
             ))}
-            {filteredStaff.filter(s => s.role === 'support').length === 0 && (
-              <div className="col-span-full text-center py-8 text-gray-500">No support staff assigned.</div>
+            {filteredStaff.filter(s => s.role === 'office_executive').length === 0 && (
+              <div className="col-span-full text-center py-8 text-gray-500">No office_executive staff assigned.</div>
             )}
           </div>
         </section>

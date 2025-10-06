@@ -66,7 +66,7 @@ export default function PatientsPage({ currentUser }) {
     setIsLoading(true);
     try {
       let patientFilter = {};
-      if (user.role === 'hospital_admin') {
+      if (user.role === 'clinic_admin') {
         patientFilter = { hospital_id: user.hospital_id };
       }
       

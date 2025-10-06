@@ -8,8 +8,8 @@ const userSchema = new mongoose.Schema(
     username: { type: String, unique: true, sparse: true, lowercase: true, trim: true },
     role: {
       type: String,
-      enum: ['patient', 'guardian', 'doctor', 'therapist', 'support', 'hospital_admin', 'admin', 'super_admin'],
-      default: 'patient',
+      enum: ['patient', 'doctor', 'clinic_admin', 'office_executive', 'super_admin'],
+      default: 'patient'
     },
     // Optional scoping fields
     hospital_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', default: null },

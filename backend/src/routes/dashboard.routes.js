@@ -51,18 +51,7 @@ router.get('/doctor', requireAuth, authorize('doctor'), (req, res) => {
   });
 });
 
-// Therapist dashboard
-router.get('/therapist', requireAuth, authorize('therapist'), (req, res) => {
-  res.json({
-    role: req.user.role,
-    sections: [
-      'Therapist Dashboard',
-      'Therapy Scheduling (execute sessions)',
-      'Patient progress tracking (limited)',
-      'Notifications',
-    ],
-  });
-});
+// Therapist dashboard removed
 
 // Patient dashboard
 router.get('/patient', requireAuth, authorize('patient'), (req, res) => {
@@ -89,8 +78,8 @@ router.get('/guardian', requireAuth, authorize('guardian'), (req, res) => {
   });
 });
 
-// Support dashboard
-router.get('/support', requireAuth, authorize('support'), (req, res) => {
+// Office Executive dashboard
+router.get('/office_executive', requireAuth, authorize('office_executive'), (req, res) => {
   res.json({
     role: req.user.role,
     sections: [

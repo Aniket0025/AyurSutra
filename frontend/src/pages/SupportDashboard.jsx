@@ -1,7 +1,7 @@
 import React from 'react';
 import { UserPlus, CreditCard } from 'lucide-react';
 
-export default function SupportDashboard() {
+export default function OfficeExecutiveDashboard() {
   return (
     <div className="p-8">
       <div className="flex items-center gap-4 mb-8">
