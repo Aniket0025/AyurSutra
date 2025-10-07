@@ -3,6 +3,7 @@ import Layout from "./Layout.jsx";
 import PatientDashboard from "./PatientDashboard";
 
 import Dashboard from "./dashboard.jsx";
+import SuperAdminDashboard from "./SuperAdminDashboard.jsx";
 
 import Patients from "./Patients";
 
@@ -17,6 +18,7 @@ import TherapyScheduling from "./TherapyScheduling";
 import Notifications from "./Notifications";
 
 import Reports from "./Reports";
+import ReportsLive from "./ReportsLive.jsx";
 
 import Analytics from "./Analytics";
 
@@ -27,6 +29,8 @@ import OfficeExecutiveDashboard from "./OfficeExecutiveDashboard";
 // Use the same Dashboard component for lowercase route as well
 
 import Hospitals from "./Hospitals";
+import SuperClinics from "./SuperClinics";
+import SuperFinances from "./SuperFinances";
 
 import PatientProgress from "./PatientProgress";
 import PatientAppointments from "./PatientAppointments";
@@ -42,6 +46,7 @@ const PAGES = {
     PatientDashboard: PatientDashboard,
     
     Dashboard: Dashboard,
+    SuperAdminDashboard: SuperAdminDashboard,
     
     Patients: Patients,
     
@@ -69,6 +74,8 @@ const PAGES = {
     dashboard: Dashboard,
     
     Hospitals: Hospitals,
+    SuperClinics: SuperClinics,
+    SuperFinances: SuperFinances,
    
     PatientProgress: PatientProgress,
     Appointments: PatientAppointments,
@@ -105,6 +112,7 @@ function PagesContent() {
                 <Route path="/patientdashboard" element={<RoleGuard roles={["patient","super_admin"]}> <PatientDashboard /> </RoleGuard>} />
                 
                 <Route path="/Dashboard" element={<RoleGuard roles={["super_admin","clinic_admin"]}> <Dashboard /> </RoleGuard>} />
+                <Route path="/SuperAdminDashboard" element={<RoleGuard roles={["super_admin"]}> <SuperAdminDashboard /> </RoleGuard>} />
                 
                 <Route path="/Patients" element={<RoleGuard roles={["super_admin","clinic_admin","doctor","office_executive"]}> <Patients /> </RoleGuard>} />
                 {/* lowercase alias for easier navigation */}
@@ -120,7 +128,7 @@ function PagesContent() {
                 
                 <Route path="/Notifications" element={<RoleGuard roles={[]}> <Notifications /> </RoleGuard>} />
                 
-                <Route path="/Reports" element={<RoleGuard roles={["super_admin","clinic_admin"]}> <Reports /> </RoleGuard>} />
+                <Route path="/Reports" element={<RoleGuard roles={["super_admin","clinic_admin"]}> <ReportsLive /> </RoleGuard>} />
                 
                 <Route path="/Analytics" element={<RoleGuard roles={["super_admin","clinic_admin"]}> <Analytics /> </RoleGuard>} />
                 
@@ -139,8 +147,11 @@ function PagesContent() {
                 <Route path="/office_executivedashboard" element={<RoleGuard roles={["office_executive","super_admin"]}> <OfficeExecutiveDashboard /> </RoleGuard>} />
                 
                 <Route path="/dashboard" element={<RoleGuard roles={["super_admin","clinic_admin"]}> <Dashboard /> </RoleGuard>} />
+                <Route path="/superadmindashboard" element={<RoleGuard roles={["super_admin"]}> <SuperAdminDashboard /> </RoleGuard>} />
                 
                 <Route path="/Hospitals" element={<RoleGuard roles={["super_admin","clinic_admin"]}> <Hospitals /> </RoleGuard>} />
+                <Route path="/SuperClinics" element={<RoleGuard roles={["super_admin"]}> <SuperClinics /> </RoleGuard>} />
+                <Route path="/SuperFinances" element={<RoleGuard roles={["super_admin"]}> <SuperFinances /> </RoleGuard>} />
                 
                 {/* Patient appointments */}
                 <Route path="/Appointments" element={<RoleGuard roles={["patient","super_admin"]}> <PatientAppointments /> </RoleGuard>} />

@@ -8,7 +8,6 @@ import { format } from "date-fns";
 import {
   Users,
   Search,
-  Plus,
   Eye,
   Edit,
   Shield,
@@ -319,23 +318,13 @@ export default function PatientsPage({ currentUser }) {
               <p className="text-gray-500">{filteredPatients.length} patients in your care</p>
             </div>
           </div>
-          
-          <div className="flex items-center gap-3 flex-wrap">
-            <button
-              onClick={() => { setEditingPatient(null); setIsAddPatientModalOpen(true); }} // Changed to new state variable
-              className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-green-600 text-white px-6 py-2 rounded-xl hover:shadow-lg transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              Add New Patient
-            </button>
-          </div>
         </div>
 
         {/* Main content */}
         <div className="bg-white rounded-3xl shadow-lg p-6">
           <div className="flex flex-col md:flex-row gap-4 mb-8">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
                 placeholder="Search patients by name, ID, or condition..."
@@ -344,8 +333,8 @@ export default function PatientsPage({ currentUser }) {
                 className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
-            <div className="relative">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <div className="relative w-full md:w-auto">
+              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}

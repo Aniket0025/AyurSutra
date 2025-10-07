@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Hospital, User } from "@/services";
 import { 
   UserCheck, 
-  Plus, 
   Search, 
   Filter,
   Eye,
@@ -96,10 +95,7 @@ export default function Staff({ currentUser }) {
   }, [staff, searchTerm, filterRole, filterHospital, currentUser]);
 
 
-  const handleAddStaff = () => {
-    setSelectedStaff(null);
-    setIsAddModalOpen(true);
-  }
+  // removed assign-staff action
 
   const handleEditStaff = (staffMember) => {
     setSelectedStaff(staffMember);
@@ -126,7 +122,6 @@ export default function Staff({ currentUser }) {
   const getRoleColor = (role) => {
     const colors = {
       doctor: 'bg-blue-100 text-blue-700',
-      therapist: 'bg-green-100 text-green-700',
       clinic_admin: 'bg-purple-100 text-purple-700',
       office_executive: 'bg-orange-100 text-orange-700',
     };
@@ -198,13 +193,9 @@ export default function Staff({ currentUser }) {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Staff Management</h1>
-            <p className="text-gray-500">Manage doctors, therapists and administrative staff</p>
+            <p className="text-gray-500">Manage doctors and administrative staff</p>
           </div>
         </div>
-        <button onClick={handleAddStaff} className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-green-600 text-white px-6 py-3 rounded-2xl hover:shadow-lg transition-all duration-300">
-          <Plus className="w-5 h-5" />
-          Assign Staff
-        </button>
       </div>
 
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-8">
@@ -217,13 +208,12 @@ export default function Staff({ currentUser }) {
             <select value={filterRole} onChange={(e) => setFilterRole(e.target.value)} className="px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
               <option value="all">All Roles</option>
               <option value="doctor">Doctors</option>
-              <option value="therapist">Therapists</option>
               <option value="clinic_admin">Clinic Admins</option>
               <option value="office_executive">Office Executive</option>
             </select>
             {effectiveUser?.role === 'super_admin' && (
               <select value={filterHospital} onChange={(e) => setFilterHospital(e.target.value)} className="px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500">
-                <option value="all">All Hospitals</option>
+                <option value="all">All Clinics</option>
                 {uniqueHospitalIds.map(hospitalId => <option key={hospitalId} value={hospitalId}>{hospitals[hospitalId] || hospitalId}</option>)}
               </select>
             )}
@@ -232,7 +222,7 @@ export default function Staff({ currentUser }) {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mb-8">
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
@@ -240,15 +230,6 @@ export default function Staff({ currentUser }) {
               <p className="text-3xl font-bold text-gray-900">{filteredStaff.filter(s => s.role === 'doctor').length}</p>
             </div>
             <div className="w-12 h-12 bg-blue-100 text-blue-700 rounded-2xl flex items-center justify-center font-bold">Dr</div>
-          </div>
-        </div>
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-500 mb-1">Therapists</p>
-              <p className="text-3xl font-bold text-gray-900">{filteredStaff.filter(s => s.role === 'therapist').length}</p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 text-green-700 rounded-2xl flex items-center justify-center font-bold">Th</div>
           </div>
         </div>
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -280,21 +261,7 @@ export default function Staff({ currentUser }) {
           </div>
         </section>
 
-        {/* Therapists */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-800">Therapists</h2>
-            <span className="text-sm text-gray-500">{filteredStaff.filter(s => s.role === 'therapist').length} total</span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredStaff.filter(s => s.role === 'therapist').map((staffMember) => (
-              <StaffCard key={staffMember.id} staffMember={staffMember} />
-            ))}
-            {filteredStaff.filter(s => s.role === 'therapist').length === 0 && (
-              <div className="col-span-full text-center py-8 text-gray-500">No therapists assigned.</div>
-            )}
-          </div>
-        </section>
+        {/* Therapists section removed */}
 
         {/* Office Executive */}
         <section>

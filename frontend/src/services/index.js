@@ -12,7 +12,10 @@ try {
       API_BASE = '';
     }
   }
-} catch {}
+} catch {
+  // ignore env resolution errors in non-browser contexts
+  void 0;
+}
 
 async function api(path, { method = 'GET', body, auth = true } = {}) {
   const headers = { 'Content-Type': 'application/json' };
@@ -20,7 +23,10 @@ async function api(path, { method = 'GET', body, auth = true } = {}) {
     try {
       const token = localStorage.getItem('ayursutra_token');
       if (token) headers['Authorization'] = `Bearer ${token}`;
-    } catch {}
+    } catch {
+      // ignore localStorage unavailability
+      void 0;
+    }
   }
   const res = await fetch(`${API_BASE}${path}`, {
     method,
@@ -96,7 +102,10 @@ function mapPatientForUI(p) {
       const dob = new Date(p.dob);
       const diff = Date.now() - dob.getTime();
       age = Math.max(0, Math.floor(diff / (365.25 * 24 * 3600 * 1000)));
-    } catch {}
+    } catch {
+      // invalid DOB format, leave age undefined
+      void 0;
+    }
   }
   return {
     ...p,
@@ -266,3 +275,40 @@ export const Appointments = {
 export const Feedback = { list: async () => [], filter: async () => [], create: async () => ({}), update: async () => ({}), delete: async () => ({}) };
 export const Notification = { list: async () => [], filter: async () => [], create: async () => ({}), update: async () => ({}), delete: async () => ({}) };
 export const ConsultationLog = { list: async () => [], filter: async () => [], create: async () => ({}), update: async () => ({}), delete: async () => ({}) };
+
+// Super Admin API client
+export const SuperAdmin = {
+  async listClinics(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    const data = await api(`/api/superadmin/clinics${qs ? `?${qs}` : ''}`);
+    return data;
+  },
+  async getClinicFinances(hospitalId, params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    const data = await api(`/api/superadmin/clinics/${hospitalId}/finances${qs ? `?${qs}` : ''}`);
+    return data;
+  },
+  async listDoctors(hospitalId, params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    const data = await api(`/api/superadmin/clinics/${hospitalId}/doctors${qs ? `?${qs}` : ''}`);
+    return data;
+  },
+  async listFeedbacks(hospitalId, params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    const data = await api(`/api/superadmin/clinics/${hospitalId}/feedbacks${qs ? `?${qs}` : ''}`);
+    return data;
+  },
+  async getClinicProgress(hospitalId, params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    const data = await api(`/api/superadmin/clinics/${hospitalId}/progress${qs ? `?${qs}` : ''}`);
+    return data;
+  },
+  async createClinicAdmin(hospitalId, payload) {
+    const data = await api(`/api/superadmin/clinics/${hospitalId}/admin`, { method: 'POST', body: payload });
+    return data;
+  },
+  async reassignClinicAdmin(hospitalId, payload) {
+    const data = await api(`/api/superadmin/clinics/${hospitalId}/admin`, { method: 'PUT', body: payload });
+    return data;
+  }
+};

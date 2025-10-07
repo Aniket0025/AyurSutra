@@ -16,17 +16,13 @@ import {
 const SUPER_ADMIN_EMAIL = 'op940356622@gmail.com';
 // --- Role-Specific Navigation Menus ---
 const superAdminNavItems = [
-  { title: "Global Dashboard", url: "Dashboard", icon: Home },
-  { title: "Hospitals", url: "Hospitals", icon: Building },
-  { title: "Global Analytics", url: "Analytics", icon: BarChart3 },
-  { title: "Global Reports", url: "Reports", icon: FileText },
-  { title: "All Patients", url: "Patients", icon: Users },
+  { title: "Dashboard", url: "SuperAdminDashboard", icon: Home },
+  { title: "Clinics", url: "SuperClinics", icon: Building },
+  { title: "Finances", url: "SuperFinances", icon: BarChart3 },
+  { title: "Reports & Analysis", url: "Reports", icon: FileText },
+  //{ title: "All Patients", url: "Patients", icon: Users },
   { title: "Staff", url: "Staff", icon: UserCheck },
-  { title: "Therapy Scheduling", url: "TherapyScheduling", icon: Calendar },
   { title: "Notifications", url: "Notifications", icon: Bell },
-  { title: "Doctor Dashboard", url: "DoctorDashboard", icon: Home },
-  { title: "Patient Dashboard", url: "PatientDashboard", icon: Home },
-  { title: "Office Executive Dashboard", url: "OfficeExecutiveDashboard", icon: Home },
   { title: "Settings", url: "Settings", icon: Settings },
 ];
 
