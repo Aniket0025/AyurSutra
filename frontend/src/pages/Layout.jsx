@@ -49,8 +49,9 @@ const doctorNavItems = [
 
 const patientNavItems = [
   { title: "My Dashboard", url: "PatientDashboard", icon: Home },
-  { title: "Appointments", url: "Appointments", icon: Calendar },
-  { title: "My Schedule", url: "TherapyScheduling", icon: Calendar },
+  { title: "My Plan", url: "PatientPlan", icon: FileText },
+  { title: "My Schedule", url: "PatientSchedule", icon: Calendar },
+  { title: "Analytics & Report", url: "PatientAnalytics", icon: BarChart3 },
   { title: "Notifications", url: "Notifications", icon: Bell },
 ];
 
