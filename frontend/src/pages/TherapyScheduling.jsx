@@ -8,35 +8,27 @@ import {
   Calendar as CalendarIcon,
   Clock,
   Users,
-  Plus,
-  ChevronLeft,
-  ChevronRight,
   Activity,
   CheckCircle,
-  Edit,
-  Trash2,
-  User as UserIcon,
   Stethoscope,
   Wind,
   Droplet,
   Flame,
   Mountain,
   Heart,
-  Building
+  
 } from "lucide-react";
-import { format, addDays, startOfWeek, endOfWeek, isToday } from "date-fns";
+import { format } from "date-fns";
 import PropTypes from 'prop-types';
-import ScheduleSessionModal from "../components/scheduling/ScheduleSessionModal";
+// View-only: scheduling modal removed
 
 function TherapyScheduling({ currentUser }) {
   const [sessions, setSessions] = useState([]);
   const [patients, setPatients] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusMessage, setStatusMessage] = useState("");
-  const [currentWeek, setCurrentWeek] = useState(new Date());
-  const [viewType, setViewType] = useState('week');
-  const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [selectedSession, setSelectedSession] = useState(null);
+  // view-only: no calendar view
+  // View-only: no scheduling/editing state
 
   const loadData = useCallback(async () => {
     // Resolve user from props or fallback to API to ensure rendering
@@ -166,99 +158,38 @@ function TherapyScheduling({ currentUser }) {
     loadData();
   }, [currentUser, loadData]);
 
-  const getWeekDays = () => {
-    const start = startOfWeek(currentWeek, { weekStartsOn: 1 });
-    return Array.from({ length: 7 }, (_, i) => addDays(start, i));
-  };
-
-  const getSessionsForDay = (date) => {
-    const dateString = format(date, 'yyyy-MM-dd');
-    const daySessions = sessions.filter(session => {
-      // Try multiple date formats to ensure compatibility
-      const sessionDate = session.scheduled_date;
-      if (!sessionDate) return false;
-      
-      // Direct string comparison
-      if (sessionDate === dateString) return true;
-      
-      // Try parsing the date if it's in a different format
-      try {
-        const parsedDate = format(new Date(sessionDate), 'yyyy-MM-dd');
-        return parsedDate === dateString;
-      } catch {
-        console.warn("Invalid date format in session:", sessionDate);
-        return false;
-      }
+  // Group sessions by scheduled_date for compact list
+  const sessionsByDate = (() => {
+    const map = new Map();
+    const sorted = [...sessions].sort((a,b) => {
+      const ad = new Date(a.scheduled_date || 0).getTime();
+      const bd = new Date(b.scheduled_date || 0).getTime();
+      if (ad !== bd) return ad - bd;
+      return String(a.scheduled_time || '').localeCompare(String(b.scheduled_time || ''));
     });
-    
-    console.log(`Sessions for ${dateString}:`, daySessions);
-    return daySessions;
-  };
+    sorted.forEach(s => {
+      const key = s.scheduled_date || 'Unknown Date';
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(s);
+    });
+    return map;
+  })();
 
   const getSessionsCount = (type) => {
     const today = format(new Date(), 'yyyy-MM-dd');
-    const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
-    const weekEnd = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
-
     switch (type) {
       case 'today':
-        return sessions.filter(s => {
-          try {
-            return format(new Date(s.scheduled_date), 'yyyy-MM-dd') === today;
-          } catch {
-            return s.scheduled_date === today;
-          }
-        }).length;
-      case 'week':
-        return sessions.filter(s => {
-          try {
-            const sessionDate = format(new Date(s.scheduled_date), 'yyyy-MM-dd');
-            return sessionDate >= weekStart && sessionDate <= weekEnd;
-          } catch {
-            return s.scheduled_date >= weekStart && s.scheduled_date <= weekEnd;
-          }
-        }).length;
+        return sessions.filter(s => (s.scheduled_date === today) || (format(new Date(s.scheduled_date), 'yyyy-MM-dd') === today)).length;
       case 'completed':
         return sessions.filter(s => s.status === 'completed').length;
       case 'pending':
         return sessions.filter(s => s.status === 'scheduled' || s.status === 'in_progress').length;
       default:
-        return 0;
+        return sessions.length;
     }
   };
 
-  const handleScheduleSession = () => {
-    setSelectedSession(null);
-    setShowScheduleModal(true);
-  };
-
-  const handleEditSession = (session) => {
-    setSelectedSession(session);
-    setShowScheduleModal(true);
-  };
-
-  const handleDeleteSession = async (sessionId) => {
-    if (!window.confirm("Are you sure you want to delete this session?")) return;
-
-    try {
-      await TherapySession.delete(sessionId);
-      setSessions(sessions.filter(s => s.id !== sessionId));
-      window.showNotification?.({
-        type: 'success',
-        title: 'Session Deleted',
-        message: 'Therapy session has been removed successfully.',
-        autoClose: true
-      });
-    } catch (error) {
-      console.error("Failed to delete session:", error);
-      window.showNotification?.({
-        type: 'error',
-        title: 'Delete Failed',
-        message: 'Unable to delete session. Please try again.',
-        autoClose: true
-      });
-    }
-  };
+  // View-only: no schedule/edit/delete handlers
 
   const getPatientName = (patientId) => {
     const patient = patients.find(p => p.id === patientId);
@@ -377,7 +308,7 @@ function TherapyScheduling({ currentUser }) {
         exit={{ opacity: 0, y: -10, scale: 0.9 }}
         whileHover={{ scale: 1.02, y: -2 }}
         transition={{ duration: 0.2 }}
-        className={`relative p-3 rounded-xl ${visual.bgColor} border-l-4 ${visual.borderColor} shadow-sm hover:shadow-md group cursor-pointer transition-all duration-200`}
+        className={`relative p-3 rounded-xl ${visual.bgColor} border-l-4 ${visual.borderColor} shadow-sm transition-all duration-200`}
       >
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
@@ -399,28 +330,7 @@ function TherapyScheduling({ currentUser }) {
               )}
             </div>
           </div>
-          <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                handleEditSession(session);
-              }} 
-              className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-              title="Edit Session"
-            >
-              <Edit className="w-3 h-3" />
-            </button>
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDeleteSession(session.id);
-              }} 
-              className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              title="Delete Session"
-            >
-              <Trash2 className="w-3 h-3" />
-            </button>
-          </div>
+          {/* View-only: no edit/delete controls */}
         </div>
       </motion.div>
     );
@@ -453,37 +363,7 @@ function TherapyScheduling({ currentUser }) {
 
   return (
     <div className="p-3 md:p-8 space-y-4 md:space-y-8 bg-gradient-to-br from-gray-50 to-blue-50/20 min-h-screen">
-      <style>{`
-        :root {
-          --herbal-green: #4CAF50;
-          --mint-green: #81C784;
-          --sky-blue: #29B6F6;
-          --aqua-blue: #4DD0E1;
-          --golden-sand: #FFD54F;
-        }
-
-        @media (max-width: 768px) {
-          .calendar-grid {
-            min-width: 100%;
-            overflow-x: auto;
-          }
-          
-          .time-slot {
-            font-size: 0.75rem;
-            padding: 0.25rem;
-          }
-          
-          .day-header {
-            min-height: 4rem;
-            padding: 0.5rem;
-          }
-          
-          .session-card {
-            margin-bottom: 0.25rem;
-            font-size: 0.75rem;
-          }
-        }
-      `}</style>
+      <style>{``}</style>
       
       {/* Header - Mobile Optimized */}
       <div className="flex flex-col space-y-3 md:space-y-0 md:flex-row md:items-center md:justify-between">
@@ -493,36 +373,11 @@ function TherapyScheduling({ currentUser }) {
           </div>
           <div>
             <h1 className="text-xl md:text-3xl font-bold text-gray-900">Therapy Scheduling</h1>
-            <p className="text-gray-500 text-xs md:text-base">Manage appointments and therapy sessions</p>
+            <p className="text-gray-500 text-xs md:text-base">View scheduled appointments and therapy sessions</p>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 md:gap-3">
-          <div className="flex bg-gray-100 rounded-xl p-1">
-            {['Week', 'Day', 'Month'].map((view) => (
-              <button
-                key={view}
-                onClick={() => setViewType(view.toLowerCase())}
-                className={`px-2 md:px-3 py-2 rounded-lg text-xs md:text-sm font-medium transition-colors flex-1 ${
-                  viewType === view.toLowerCase()
-                    ? 'bg-white text-gray-900 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                {view}
-              </button>
-            ))}
-          </div>
-          
-          <button
-            onClick={handleScheduleSession}
-            className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-green-600 text-white px-3 md:px-6 py-2.5 md:py-3 rounded-2xl hover:shadow-lg transition-all duration-300 text-xs md:text-base font-medium"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Schedule Session</span>
-            <span className="sm:hidden">Schedule</span>
-          </button>
-        </div>
+        <div />
       </div>
 
       {/* Stats Cards */}
@@ -553,138 +408,36 @@ function TherapyScheduling({ currentUser }) {
         />
       </div>
 
-      {/* Enhanced Calendar Navigation */}
+      {/* Compact sessions list */}
       <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-3 md:p-6 shadow-xl border border-white/50">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 md:mb-6 gap-3">
-          <div className="flex items-center gap-2 md:gap-4">
-            <button
-              onClick={() => setCurrentWeek(addDays(currentWeek, -7))}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-            >
-              <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
-            </button>
-            <h2 className="text-base md:text-xl font-bold text-gray-900 text-center">
-              {format(startOfWeek(currentWeek, { weekStartsOn: 1 }), 'MMM d')} - {format(endOfWeek(currentWeek, { weekStartsOn: 1 }), 'MMM d, yyyy')}
-            </h2>
-            <button
-              onClick={() => setCurrentWeek(addDays(currentWeek, 7))}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
-            >
-              <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
-            </button>
-          </div>
-          
-          <button
-            onClick={() => setCurrentWeek(new Date())}
-            className="px-3 md:px-4 py-2 bg-blue-100 text-blue-700 rounded-xl hover:bg-blue-200 transition-colors text-xs md:text-sm font-medium flex-shrink-0"
-          >
-            Today
-          </button>
-        </div>
-
-        {/* Enhanced Weekly Calendar Grid */}
-        <div className="overflow-x-auto calendar-grid">
-          <div className="grid grid-cols-8 gap-2 md:gap-4 min-w-[800px]">
-            {/* Time Column */}
-            <div className="space-y-2 md:space-y-4">
-              <div className="h-16 md:h-24 flex items-center justify-center font-medium text-gray-400 text-xs md:text-sm day-header">
-                Time
-              </div>
-              {['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'].map(time => (
-                <div key={time} className="h-16 md:h-20 flex items-start justify-center text-xs md:text-sm text-gray-500 pt-2 time-slot">
-                  <span className="hidden md:inline">{time}</span>
-                  <span className="md:hidden">{time.replace(' AM', 'A').replace(' PM', 'P')}</span>
+        {sessions.length === 0 ? (
+          <div className="text-gray-500 text-center py-12">No sessions scheduled.</div>
+        ) : (
+          <div className="space-y-6">
+            {[...sessionsByDate.keys()].map(dateKey => (
+              <div key={dateKey}>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm md:text-base font-semibold text-gray-800">
+                    {dateKey ? format(new Date(dateKey), 'EEE, MMM d, yyyy') : 'Unknown Date'}
+                  </h3>
+                  <span className="text-xs text-gray-500">{sessionsByDate.get(dateKey)?.length} sessions</span>
                 </div>
-              ))}
-            </div>
-
-            {/* Day Columns */}
-            {getWeekDays().map((day) => (
-              <div key={day.toISOString()} className="space-y-2 md:space-y-4">
-                <div className={`h-16 md:h-24 flex flex-col items-center justify-center rounded-2xl transition-all duration-300 day-header ${
-                  isToday(day) 
-                    ? 'bg-gradient-to-br from-blue-400 to-green-400 text-white shadow-lg' 
-                    : 'bg-white/70 hover:bg-white/90 border border-gray-100'
-                }`}>
-                  <div className="text-xs md:text-sm font-medium">
-                    {format(day, 'EEE')}
-                  </div>
-                  <div className={`text-xl md:text-3xl font-bold ${isToday(day) ? 'text-white' : 'text-gray-800'}`}>
-                    {format(day, 'd')}
-                  </div>
-                  <div className={`text-xs ${isToday(day) ? 'text-white/80' : 'text-gray-500'}`}>
-                    {getSessionsForDay(day).length} sessions
-                  </div>
-                </div>
-                
-                <div className="space-y-1 md:space-y-2 min-h-[300px] md:min-h-[600px]">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                   <AnimatePresence>
-                    {getSessionsForDay(day).map(session => (
-                      <div key={session.id} className="session-card">
-                        <SessionCard session={session} />
+                    {sessionsByDate.get(dateKey).map(s => (
+                      <div key={s.id} className="session-card">
+                        <SessionCard session={s} />
                       </div>
                     ))}
                   </AnimatePresence>
-                  {getSessionsForDay(day).length === 0 && (
-                    <div className="text-xs md:text-sm text-gray-400 text-center py-2">No sessions</div>
-                  )}
                 </div>
               </div>
             ))}
           </div>
-        </div>
-
-        {/* Enhanced Data Debug Information */}
-        <div className="mt-4 md:mt-6 p-3 md:p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-xl text-xs border border-blue-200">
-          <div className="flex flex-wrap items-center gap-4 text-gray-700">
-            <span className="flex items-center gap-1">
-              <Activity className="w-4 h-4 text-blue-600" />
-              <strong>{sessions.length}</strong> sessions loaded
-            </span>
-            <span className="flex items-center gap-1">
-              <Users className="w-4 h-4 text-green-600" />
-              <strong>{patients.length}</strong> patients
-            </span>
-            <span className="flex items-center gap-1">
-              <UserIcon className="w-4 h-4 text-purple-600" />
-              {currentUser?.role} - {currentUser?.email}
-            </span>
-            {currentUser?.hospital_id && (
-              <span className="flex items-center gap-1">
-                <Building className="w-4 h-4 text-orange-600" />
-                Hospital: {currentUser.hospital_id}
-              </span>
-            )}
-          </div>
-          {sessions.length > 0 && (
-            <div className="mt-2 pt-2 border-t border-blue-200">
-              <p className="font-medium text-gray-800 mb-1">Recent sessions:</p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                {sessions.slice(0, 3).map(session => (
-                  <div key={session.id} className="bg-white/60 rounded-lg p-2">
-                    <span className="font-medium capitalize">{session.therapy_type.replace('_', ' ')}</span>
-                    <br />
-                    <span className="text-gray-600">{session.scheduled_date} at {session.scheduled_time}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
-      {/* Schedule Session Modal */}
-      <ScheduleSessionModal
-        isOpen={showScheduleModal}
-        onClose={() => {
-          setShowScheduleModal(false);
-          setSelectedSession(null);
-        }}
-        session={selectedSession}
-        patients={patients}
-        onSessionScheduled={loadData}
-        currentUser={currentUser}
-      />
+      {/* View-only: scheduling modal removed */}
     </div>
   );
 }

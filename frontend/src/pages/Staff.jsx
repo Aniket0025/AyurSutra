@@ -1,16 +1,12 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import PropTypes from 'prop-types';
 import { Hospital, User } from "@/services";
 import { 
   UserCheck, 
   Search, 
-  Filter,
-  Eye,
   Edit,
   Trash2,
-  Calendar,
   Phone,
-  Mail,
-  Award,
   MapPin,
   Briefcase
 } from "lucide-react";
@@ -46,13 +42,8 @@ export default function Staff({ currentUser }) {
     return () => { mounted = false; };
   }, [currentUser]);
 
-  useEffect(() => {
-    if (effectiveUser) {
-      loadStaff(effectiveUser);
-    }
-  }, [effectiveUser]);
-
-  const loadStaff = async (userCtx = effectiveUser) => {
+  // Define loader BEFORE any effect that uses it to avoid temporal dead zone
+  const loadStaff = useCallback(async (userCtx = effectiveUser) => {
     setIsLoading(true);
     try {
       let staffData = [];
@@ -78,7 +69,13 @@ export default function Staff({ currentUser }) {
       console.error("Error loading staff:", error);
     }
     setIsLoading(false);
-  };
+  }, [effectiveUser]);
+
+  useEffect(() => {
+    if (effectiveUser) {
+      loadStaff(effectiveUser);
+    }
+  }, [effectiveUser, loadStaff]);
   
   useEffect(() => {
     const term = searchTerm.toLowerCase();
@@ -92,7 +89,7 @@ export default function Staff({ currentUser }) {
       return matchesSearch && matchesRole && (effectiveUser?.role === 'super_admin' ? matchesHospital : true);
     });
     setFilteredStaff(filtered);
-  }, [staff, searchTerm, filterRole, filterHospital, currentUser]);
+  }, [staff, searchTerm, filterRole, filterHospital, effectiveUser?.role]);
 
 
   // removed assign-staff action
@@ -140,14 +137,16 @@ export default function Staff({ currentUser }) {
             <p className="text-gray-500 text-sm">{staffMember.email}</p>
           </div>
         </div>
-        <div className="flex items-center gap-1">
-          <button onClick={() => handleEditStaff(staffMember)} className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Edit Staff">
-            <Edit className="w-4 h-4" />
-          </button>
-          <button onClick={() => handleDeleteStaff(staffMember)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete Staff">
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
+        {effectiveUser?.role === 'clinic_admin' && (
+          <div className="flex items-center gap-1">
+            <button onClick={() => handleEditStaff(staffMember)} className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Edit Staff">
+              <Edit className="w-4 h-4" />
+            </button>
+            <button onClick={() => handleDeleteStaff(staffMember)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete Staff">
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* If hospital admin without hospital_id, guide to assign hospital */}
@@ -172,6 +171,19 @@ export default function Staff({ currentUser }) {
       </div>
     </div>
   );
+  // PropTypes for inner card component (attached inside to avoid scope issues)
+  StaffCard.propTypes = {
+    staffMember: PropTypes.shape({
+      id: PropTypes.any,
+      full_name: PropTypes.string,
+      name: PropTypes.string,
+      email: PropTypes.string,
+      role: PropTypes.string,
+      specialization: PropTypes.string,
+      hospital_id: PropTypes.any,
+      phone: PropTypes.string,
+    }).isRequired,
+  };
 
   if (isLoading) {
     return (
@@ -196,6 +208,11 @@ export default function Staff({ currentUser }) {
             <p className="text-gray-500">Manage doctors and administrative staff</p>
           </div>
         </div>
+        {effectiveUser?.role === 'clinic_admin' && effectiveUser?.hospital_id && (
+          <button onClick={() => { setSelectedStaff(null); setIsAddModalOpen(true); }} className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-green-600 text-white font-medium hover:shadow-md">
+            Assign Staff
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-8">
@@ -252,17 +269,14 @@ export default function Staff({ currentUser }) {
             <span className="text-sm text-gray-500">{filteredStaff.filter(s => s.role === 'doctor').length} total</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredStaff.filter(s => s.role === 'doctor').map((staffMember) => (
-              <StaffCard key={staffMember.id} staffMember={staffMember} />
+            {filteredStaff.filter(s => s.role === 'doctor').map(staffMember => (
+              <StaffCard key={staffMember.id || staffMember._id || `staff-${staffMember.email || Math.random()}`} staffMember={staffMember} />
             ))}
             {filteredStaff.filter(s => s.role === 'doctor').length === 0 && (
               <div className="col-span-full text-center py-8 text-gray-500">No doctors assigned.</div>
             )}
           </div>
         </section>
-
-        {/* Therapists section removed */}
-
         {/* Office Executive */}
         <section>
           <div className="flex items-center justify-between mb-4">
@@ -270,9 +284,11 @@ export default function Staff({ currentUser }) {
             <span className="text-sm text-gray-500">{filteredStaff.filter(s => s.role === 'office_executive').length} total</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* eslint-disable react/prop-types */}
             {filteredStaff.filter(s => s.role === 'office_executive').map((staffMember) => (
-              <StaffCard key={staffMember.id} staffMember={staffMember} />
+              <StaffCard key={staffMember.id || staffMember._id || `staff-${staffMember.email || Math.random()}`} staffMember={staffMember} />
             ))}
+            {/* eslint-enable react/prop-types */}
             {filteredStaff.filter(s => s.role === 'office_executive').length === 0 && (
               <div className="col-span-full text-center py-8 text-gray-500">No office_executive staff assigned.</div>
             )}
@@ -282,11 +298,39 @@ export default function Staff({ currentUser }) {
 
       {(!isLoading && staff.length === 0) && (
         <div className="bg-white rounded-2xl p-8 text-center text-gray-500 border border-dashed">
-          No staff members found. Click "Assign Staff" to add your first staff member.
+          No staff members found. Click &quot;Assign Staff&quot; to add your first staff member.
         </div>
       )}
-
-      <AddStaffModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onStaffAdded={() => loadStaff(effectiveUser)} staffMember={selectedStaff} currentUser={effectiveUser} />
+      {/* Modal */}
+      <AddStaffModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onStaffAdded={(u) => {
+          if (u) {
+            setStaff(prev => {
+              const id = u.id || u._id;
+              const idx = prev.findIndex(x => (x.id || x._id) === id);
+              if (idx >= 0) {
+                const next = prev.slice();
+                next[idx] = { ...prev[idx], ...u };
+                return next;
+              }
+              return [...prev, u];
+            });
+          }
+          setIsAddModalOpen(false);
+          setSelectedStaff(null);
+          // Also refresh from server to ensure consistency
+          loadStaff(effectiveUser);
+        }}
+        staffMember={selectedStaff}
+        currentUser={effectiveUser}
+      />
     </div>
   );
 }
+
+Staff.propTypes = {
+  currentUser: PropTypes.object.isRequired,
+  staffMember: PropTypes.object,
+};

@@ -84,6 +84,14 @@ export const Hospital = {
     const data = await api(`/api/hospitals/${hospitalId}/staff`);
     return (data?.staff || []).map(normalizeId);
   },
+  async updateStaff(hospitalId, userId, body) {
+    const data = await api(`/api/hospitals/${hospitalId}/staff/${userId}`, { method: 'PUT', body });
+    return normalizeId(data?.user || data);
+  },
+  async summary(hospitalId) {
+    const data = await api(`/api/hospitals/${hospitalId}/summary`);
+    return data;
+  },
   async removeStaff(hospitalId, userId) {
     await api(`/api/hospitals/${hospitalId}/staff/${userId}`, { method: 'DELETE' });
     return true;
