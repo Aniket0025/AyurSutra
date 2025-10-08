@@ -238,7 +238,9 @@ export default function NotificationsPage() {
     }
   };
 
-  const list = activeTab === 'incoming' ? incoming : outgoing;
+  // Only admins can send; patients should never see outgoing
+  const canSend = me?.role === 'super_admin' || me?.role === 'clinic_admin' || me?.role === 'doctor' || me?.role === 'office_executive';
+  const list = canSend && activeTab === 'outgoing' ? outgoing : incoming;
   const filteredNotifications = list.filter((n) => {
     // status filter
     if (filterStatus === 'unread') {
@@ -287,11 +289,13 @@ export default function NotificationsPage() {
         )}
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2 mb-6">
-        <button onClick={()=>setActiveTab('incoming')} className={`px-4 py-2 rounded-xl border ${activeTab==='incoming'?'bg-white shadow':'bg-gray-50 hover:bg-white'} `}>Incoming</button>
-        <button onClick={()=>setActiveTab('outgoing')} className={`px-4 py-2 rounded-xl border ${activeTab==='outgoing'?'bg-white shadow':'bg-gray-50 hover:bg-white'} `}>Outgoing</button>
-      </div>
+      {/* Tabs (only for roles that can send) */}
+      {canSend && (
+        <div className="flex items-center gap-2 mb-6">
+          <button onClick={()=>setActiveTab('incoming')} className={`px-4 py-2 rounded-xl border ${activeTab==='incoming'?'bg-white shadow':'bg-gray-50 hover:bg-white'} `}>Incoming</button>
+          <button onClick={()=>setActiveTab('outgoing')} className={`px-4 py-2 rounded-xl border ${activeTab==='outgoing'?'bg-white shadow':'bg-gray-50 hover:bg-white'} `}>Outgoing</button>
+        </div>
+      )}
 
       {/* Super Admin Composer (Outgoing tab) */}
       {activeTab === 'outgoing' && me?.role === 'super_admin' && (
