@@ -327,6 +327,14 @@ PatientsPage.propTypes = {
               <p className="text-gray-500">{filteredPatients.length} patients in your care</p>
             </div>
           </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsAddPatientModalOpen(true)}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-green-600 text-white font-medium hover:shadow-md"
+            >
+              Add Patient
+            </button>
+          </div>
         </div>
 
         {/* Main content */}
@@ -407,7 +415,7 @@ PatientsPage.propTypes = {
         }}
         onPatientAdded={handlePatientAdded}
         patient={editingPatient}
-        currentUser={currentUser}
+        currentUser={self}
       />
 
       <PatientDetailModal
