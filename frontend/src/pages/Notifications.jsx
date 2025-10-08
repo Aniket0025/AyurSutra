@@ -1,9 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { Notification, Hospital } from "@/services";
 import { User } from "@/services";
 import { Bell, Check, X, AlertTriangle, Calendar, Edit, Shield, Send, Search, Building2 } from "lucide-react";
 import { formatDistanceToNow, isWithinInterval } from "date-fns";
+
 
 export default function NotificationsPage() {
   // Incoming/Outgoing segregation
