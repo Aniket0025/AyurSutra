@@ -11,6 +11,12 @@ export default function RoleGuard({ roles = [], children }) {
     let mounted = true;
     (async () => {
       try {
+        // If this route requires no specific roles, allow immediately
+        if (roles.length === 0) {
+          setAllowed(true);
+          return;
+        }
+
         const user = await User.me();
         if (!mounted) return;
         if (!user) {
@@ -18,10 +24,6 @@ export default function RoleGuard({ roles = [], children }) {
           return;
         }
         setMe(user);
-        if (roles.length === 0) {
-          setAllowed(true);
-          return;
-        }
         setAllowed(roles.includes(user.role) || user.role === 'super_admin');
       } catch {
         if (!mounted) return;
@@ -44,6 +46,9 @@ export default function RoleGuard({ roles = [], children }) {
       <div className="p-6 text-center">
         <h2 className="text-xl font-semibold text-red-600 mb-2">Access Denied</h2>
         <p className="text-gray-600">You do not have permission to view this page.</p>
+        {roles.length > 0 && (
+          <p className="text-gray-400 text-sm mt-2">Required roles: {roles.join(', ')}</p>
+        )}
       </div>
     );
   }

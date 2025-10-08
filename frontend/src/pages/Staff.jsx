@@ -331,6 +331,6 @@ export default function Staff({ currentUser }) {
 }
 
 Staff.propTypes = {
-  currentUser: PropTypes.object.isRequired,
   staffMember: PropTypes.object,
+  currentUser: PropTypes.object,
 };

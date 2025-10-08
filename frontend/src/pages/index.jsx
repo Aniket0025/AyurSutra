@@ -100,33 +100,19 @@ function PagesContent() {
                 {/* lowercase alias for easier navigation */}
                 <Route path="/patients" element={<RoleGuard roles={["super_admin","clinic_admin","doctor","office_executive"]}> <Patients /> </RoleGuard>} />
 
-                <Route path="/Settings" element={<RoleGuard roles={[]}> <Settings /> </RoleGuard>} />
-
                 <Route path="/Staff" element={<RoleGuard roles={["super_admin","clinic_admin"]}> <Staff /> </RoleGuard>} />
-
-                <Route path="/TherapyScheduling" element={<RoleGuard roles={["super_admin","clinic_admin","doctor","patient"]}> <TherapyScheduling /> </RoleGuard>} />
-
-                <Route path="/" element={<RoleGuard roles={["super_admin","clinic_admin","doctor"]}></RoleGuard>} />
-
+                <Route path="/TherapyScheduling" element={<RoleGuard roles={["super_admin","clinic_admin","doctor","patient","office_executive"]}> <TherapyScheduling /> </RoleGuard>} />
+                
                 <Route path="/Notifications" element={<RoleGuard roles={[]}> <Notifications /> </RoleGuard>} />
-
                 <Route path="/Reports" element={<RoleGuard roles={["super_admin","clinic_admin"]}> <ReportsLive /> </RoleGuard>} />
-
                 <Route path="/Analytics" element={<RoleGuard roles={["super_admin","clinic_admin"]}> <Analytics /> </RoleGuard>} />
-
                 <Route path="/DoctorDashboard" element={<RoleGuard roles={["doctor","super_admin"]}> <DoctorDashboard /> </RoleGuard>} />
                 {/* lowercase alias for role-based redirect */}
                 <Route path="/doctordashboard" element={<RoleGuard roles={["doctor","super_admin"]}> <DoctorDashboard /> </RoleGuard>} />
-
-                {/* Therapist routes removed */}
-
-                <Route path="/" element={<RoleGuard roles={["super_admin"]}> <Dashboard /> </RoleGuard>} />
-
+                
                 <Route path="/OfficeExecutiveDashboard" element={<RoleGuard roles={["office_executive","super_admin"]}> <OfficeExecutiveDashboard /> </RoleGuard>} />
                 {/* lowercase alias for role-based redirect */}
                 <Route path="/office_executivedashboard" element={<RoleGuard roles={["office_executive","super_admin"]}> <OfficeExecutiveDashboard /> </RoleGuard>} />
-
-                <Route path="/dashboard" element={<RoleGuard roles={["super_admin","clinic_admin"]}> <Dashboard /> </RoleGuard>} />
                 <Route path="/superadmindashboard" element={<RoleGuard roles={["super_admin"]}> <SuperAdminDashboard /> </RoleGuard>} />
 
                 <Route path="/Hospitals" element={<RoleGuard roles={["super_admin","clinic_admin"]}> <Hospitals /> </RoleGuard>} />
