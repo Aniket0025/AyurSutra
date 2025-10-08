@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { User } from '@/services';
 import { Patient } from '@/services';
+import { Hospital } from '@/services';
 import { X, Plus, UserPlus, Heart, MapPin, Shield } from 'lucide-react';
 
 export default function AddPatientModal({ isOpen, onClose, onPatientAdded, patient, currentUser }) {
@@ -19,7 +20,7 @@ export default function AddPatientModal({ isOpen, onClose, onPatientAdded, patie
     Id: '', // New field for  assignment
     progressScore: 0
   });
-  const [s, sets] = useState([]); // New state for s
+  const [doctors, setDoctors] = useState([]); // Doctors list for assignment
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -56,42 +57,23 @@ export default function AddPatientModal({ isOpen, onClose, onPatientAdded, patie
       });
     }
 
-AddPatientModal.propTypes = {
-  isOpen: PropTypes.bool.isRequired,
-  onClose: PropTypes.func.isRequired,
-  onPatientAdded: PropTypes.func.isRequired,
-  patient: PropTypes.shape({
-    id: PropTypes.any,
-    full_name: PropTypes.string,
-    email: PropTypes.string,
-    phone: PropTypes.string,
-    age: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-    gender: PropTypes.string,
-    address: PropTypes.string,
-    medical_history: PropTypes.string,
-    current_conditions: PropTypes.arrayOf(PropTypes.string),
-    allergies: PropTypes.arrayOf(PropTypes.string),
-    assigned_doctor: PropTypes.string,
-    _ids: PropTypes.array,
-    progress_score: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  }),
-  currentUser: PropTypes.shape({
-    full_name: PropTypes.string,
-    hospital_id: PropTypes.any,
-  }),
-};
-
-    // Load potential s
-    const loads = async () => {
+    // Load doctors for assignment
+    const loadDoctors = async () => {
       try {
-        const Users = await User.filter({ role: '' });
-        sets(Users);
+        if (!currentUser?.hospital_id) {
+          setDoctors([]);
+          return;
+        }
+        const staff = await Hospital.listStaff(currentUser.hospital_id);
+        const docs = (staff || []).filter(u => u.role === 'doctor');
+        setDoctors(docs);
       } catch (err) {
-        console.error("Failed to load s", err);
+        console.error('Failed to load doctors', err);
+        setDoctors([]);
       }
     };
     if (isOpen) {
-      loads();
+      loadDoctors();
     }
   }, [patient, isOpen, currentUser]); // Added currentUser to dependencies
 
@@ -99,7 +81,13 @@ AddPatientModal.propTypes = {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    // If changing doctor Id in assignment, also set assignedDoctor name for UI consistency
+    if (name === 'Id') {
+      const doc = doctors.find(d => String(d.id) === String(value));
+      setFormData(prev => ({ ...prev, Id: value, assignedDoctor: doc ? (doc.full_name || doc.name || '') : '' }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -126,7 +114,8 @@ AddPatientModal.propTypes = {
         full_name: formData.fullName,
         phone: formData.phone,
         email: formData.email,
-        _ids: formData.Id ? [formData.Id] : [], // Include _ids
+        // doctor assignment id kept for future linkage if needed
+        doctor_id: formData.Id || undefined,
         hospital_id: currentUser?.hospital_id, // Ensure hospital_id is set
       };
 
@@ -218,12 +207,12 @@ AddPatientModal.propTypes = {
                    Assignment
                 </h3>
                 <select name="Id" value={formData.Id} onChange={handleChange} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 bg-white">
-                  <option value="">No  Assigned</option>
-                  {s.map(g => (
-                    <option key={g.id} value={g.id}>{g.full_name} ({g.email})</option>
+                  <option value="">No Doctor Assigned</option>
+                  {doctors.map(d => (
+                    <option key={d.id} value={d.id}>{(d.full_name || d.name) || 'Doctor'} {d.email ? `(${d.email})` : ''}</option>
                   ))}
                 </select>
-                <p className="text-xs text-gray-500">Select from existing s. New s can be invited from the Staff page.</p>
+                <p className="text-xs text-gray-500">Select from existing doctors. New staff can be invited from the Staff page.</p>
               </div>
             </div>
 
@@ -273,3 +262,29 @@ AddPatientModal.propTypes = {
     </div>
   );
 }
+
+// Move prop types outside component definition (ensures they are not inside hooks/effects)
+AddPatientModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onPatientAdded: PropTypes.func.isRequired,
+  patient: PropTypes.shape({
+    id: PropTypes.any,
+    full_name: PropTypes.string,
+    email: PropTypes.string,
+    phone: PropTypes.string,
+    age: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    gender: PropTypes.string,
+    address: PropTypes.string,
+    medical_history: PropTypes.string,
+    current_conditions: PropTypes.arrayOf(PropTypes.string),
+    allergies: PropTypes.arrayOf(PropTypes.string),
+    assigned_doctor: PropTypes.string,
+    _ids: PropTypes.array,
+    progress_score: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  }),
+  currentUser: PropTypes.shape({
+    full_name: PropTypes.string,
+    hospital_id: PropTypes.any,
+  }),
+};

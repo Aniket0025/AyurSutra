@@ -20,6 +20,7 @@ export default function Dashboard({ currentUser: incomingUser }) {
   // Clinic admin summary
   const [clinicSummary, setClinicSummary] = useState({ patients: 0, doctors: 0, office_executives: 0, income: 0, expense: 0, net: 0 });
   const [clinicLoading, setClinicLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   useEffect(() => {
     if (!isSuper) return;
@@ -68,8 +69,10 @@ Dashboard.propTypes = {
       try {
         const s = await Hospital.summary(me.hospital_id);
         setClinicSummary(s || {});
-      } catch {
-        // ignore
+        setLastUpdated(new Date());
+      } catch (e) {
+        console.warn('Failed to load clinic summary', e);
+        try { window.showNotification && window.showNotification({ type: 'error', title: 'Dashboard', message: 'Failed to load clinic KPIs' }); } catch {}
       } finally {
         setClinicLoading(false);
       }
@@ -111,6 +114,7 @@ Dashboard.propTypes = {
                     setClinics(data);
                     const cur = data.items?.find(i => (i._id||i.id) === (selectedClinic?._id||selectedClinic?.id));
                     if (cur) setSelectedClinic(cur);
+                    setLastUpdated(new Date());
                   } finally { setLoading(false); }
                 })();
               }
@@ -129,6 +133,7 @@ Dashboard.propTypes = {
                 try {
                   const s = await Hospital.summary(me.hospital_id);
                   setClinicSummary(s || {});
+                  setLastUpdated(new Date());
                 } finally { setClinicLoading(false); }
               })();
             }}
@@ -138,6 +143,10 @@ Dashboard.propTypes = {
           </button>
         )}
       </div>
+
+      {hasClinic && lastUpdated && (
+        <div className="mb-2 text-xs text-gray-500">Last updated: {new Date(lastUpdated).toLocaleString()}</div>
+      )}
 
       {!hasClinic && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
