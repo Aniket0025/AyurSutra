@@ -118,6 +118,7 @@ function mapPatientForUI(p) {
   return {
     ...p,
     id,
+    user_id: p.user_id || p.userId || undefined,
     patient_id,
     assigned_doctor_id: p.assigned_doctor_id || null,
     full_name: p.full_name || p.name,
@@ -253,8 +254,11 @@ export const TherapySession = {
 };
 
 export const Appointments = {
-  async book({ hospital_id, staff_id, type, start_time, end_time, notes }) {
-    const data = await api('/api/appointments', { method: 'POST', body: { hospital_id, staff_id, type, start_time, end_time, notes } });
+  async book({ hospital_id, staff_id, type, start_time, end_time, notes, patient_user_id, patient_record_id }) {
+    const body = { hospital_id, staff_id, type, start_time, end_time, notes };
+    if (patient_user_id) body.patient_user_id = patient_user_id;
+    if (patient_record_id) body.patient_record_id = patient_record_id;
+    const data = await api('/api/appointments', { method: 'POST', body });
     return normalizeId(data?.appointment);
   },
   async mine() {

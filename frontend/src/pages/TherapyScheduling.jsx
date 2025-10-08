@@ -3,6 +3,8 @@ import { useState, useEffect, useCallback } from "react";
 import { TherapySession } from "@/services";
 import { Patient } from "@/services";
 import { User } from "@/services";
+import { Hospital } from "@/services";
+import { Appointments } from "@/services";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Calendar as CalendarIcon,
@@ -27,6 +29,12 @@ function TherapyScheduling({ currentUser }) {
   const [patients, setPatients] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusMessage, setStatusMessage] = useState("");
+  const [doctors, setDoctors] = useState([]);
+  const [bookingBusy, setBookingBusy] = useState(false);
+  const [form, setForm] = useState({ patientId: '', doctorId: '', date: '', time: '', duration: 30, notes: '' });
+  const [showAddPatient, setShowAddPatient] = useState(false);
+  const [newPatient, setNewPatient] = useState({ full_name: '', phone: '', gender: '', address: '' });
+  const [creatingPatient, setCreatingPatient] = useState(false);
   // view-only: no calendar view
   // View-only: no scheduling/editing state
 
@@ -157,6 +165,71 @@ function TherapyScheduling({ currentUser }) {
     // Always attempt to load data; loadData resolves user if prop is missing
     loadData();
   }, [currentUser, loadData]);
+
+  // Load doctors list for office_executive/clinic_admin booking
+  useEffect(() => {
+    (async () => {
+      const me = currentUser || await User.me().catch(() => null);
+      if (!me?.hospital_id) { setDoctors([]); return; }
+      try {
+        const staff = await Hospital.listStaff(me.hospital_id);
+        setDoctors((staff || []).filter(u => u.role === 'doctor'));
+      } catch { setDoctors([]); }
+    })();
+  }, [currentUser]);
+
+  const canBook = (currentUser?.role === 'clinic_admin');
+
+  const handleBook = async (e) => {
+    e?.preventDefault?.();
+    const me = currentUser || await User.me().catch(() => null);
+    if (!me?.hospital_id) return window.showNotification?.({ type: 'error', title: 'Clinic missing', message: 'Your account is not linked to a clinic.' });
+    if (!form.patientId || !form.doctorId || !form.date || !form.time) return window.showNotification?.({ type: 'error', title: 'Missing details', message: 'Select patient, doctor, date and time.' });
+    try {
+      setBookingBusy(true);
+      const start = new Date(`${form.date}T${form.time}:00`);
+      const end = new Date(start.getTime() + (Number(form.duration) || 30) * 60000);
+      await Appointments.book({
+        hospital_id: me.hospital_id,
+        staff_id: form.doctorId,
+        type: 'doctor',
+        start_time: start.toISOString(),
+        end_time: end.toISOString(),
+        notes: form.notes || `Booked by ${me.full_name || 'staff'}`,
+      });
+      window.showNotification?.({ type: 'success', title: 'Appointment booked', message: 'The appointment has been created.' });
+      setForm({ patientId: '', doctorId: '', date: '', time: '', duration: 30, notes: '' });
+      loadData();
+    } catch (err) {
+      window.showNotification?.({ type: 'error', title: 'Booking failed', message: err?.message || 'Unable to create appointment' });
+    } finally { setBookingBusy(false); }
+  };
+
+  const handleCreatePatient = async (e) => {
+    e?.preventDefault?.();
+    if (!newPatient.full_name) return window.showNotification?.({ type: 'error', title: 'Name required', message: 'Please enter patient name.' });
+    try {
+      setCreatingPatient(true);
+      const payload = {
+        full_name: newPatient.full_name,
+        phone: newPatient.phone,
+        gender: newPatient.gender,
+        address: newPatient.address,
+        ...(form.doctorId ? { doctor_id: form.doctorId } : {}),
+      };
+      const created = await Patient.create(payload);
+      window.showNotification?.({ type: 'success', title: 'Patient added', message: `Created ${created.full_name}` });
+      // refresh patients list and preselect
+      const me = currentUser || await User.me().catch(() => null);
+      const refreshed = await Patient.filter(me?.hospital_id ? { hospital_id: me.hospital_id } : {});
+      setPatients(refreshed);
+      setForm(f => ({ ...f, patientId: created.id }));
+      setShowAddPatient(false);
+      setNewPatient({ full_name: '', phone: '', gender: '', address: '' });
+    } catch (err) {
+      window.showNotification?.({ type: 'error', title: 'Create failed', message: err?.message || 'Unable to create patient' });
+    } finally { setCreatingPatient(false); }
+  };
 
   // Group sessions by scheduled_date for compact list
   const sessionsByDate = (() => {
@@ -379,6 +452,84 @@ function TherapyScheduling({ currentUser }) {
 
         <div />
       </div>
+
+      {/* Booking (Office Executive/Clinic Admin) */}
+      {canBook && (
+        <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-3 md:p-6 shadow-xl border border-white/50">
+          <h2 className="text-base md:text-lg font-semibold text-gray-800 mb-3">Book Appointment</h2>
+          {/* Quick Add Patient */}
+          <div className="mb-3">
+            <button type="button" onClick={()=>setShowAddPatient(v=>!v)} className="text-sm px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200">
+              {showAddPatient ? 'Close Add Patient' : 'Add New Patient'}
+            </button>
+          </div>
+          {showAddPatient && (
+            <form onSubmit={handleCreatePatient} className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-4 p-3 border rounded-xl bg-gray-50">
+              <div className="md:col-span-2">
+                <label className="block text-xs text-gray-600 mb-1">Full Name</label>
+                <input type="text" value={newPatient.full_name} onChange={(e)=>setNewPatient(p=>({ ...p, full_name: e.target.value }))} className="w-full px-3 py-2 border rounded-lg" required />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Phone</label>
+                <input type="tel" value={newPatient.phone} onChange={(e)=>setNewPatient(p=>({ ...p, phone: e.target.value }))} className="w-full px-3 py-2 border rounded-lg" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Gender</label>
+                <select value={newPatient.gender} onChange={(e)=>setNewPatient(p=>({ ...p, gender: e.target.value }))} className="w-full px-3 py-2 border rounded-lg">
+                  <option value="">Select</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs text-gray-600 mb-1">Address</label>
+                <input type="text" value={newPatient.address} onChange={(e)=>setNewPatient(p=>({ ...p, address: e.target.value }))} className="w-full px-3 py-2 border rounded-lg" />
+              </div>
+              <div className="md:col-span-6 flex justify-end">
+                <button type="submit" disabled={creatingPatient} className="px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 text-white disabled:opacity-50">
+                  {creatingPatient ? 'Creating...' : 'Create Patient'}
+                </button>
+              </div>
+            </form>
+          )}
+          <form onSubmit={handleBook} className="grid grid-cols-1 md:grid-cols-6 gap-3">
+            <div className="md:col-span-2">
+              <label className="block text-xs text-gray-600 mb-1">Patient</label>
+              <select value={form.patientId} onChange={(e)=>setForm(f=>({ ...f, patientId: e.target.value }))} className="w-full px-3 py-2 border rounded-lg">
+                <option value="">Select patient</option>
+                {patients.map(p => (<option key={p.id} value={p.id}>{p.full_name || p.name}</option>))}
+              </select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs text-gray-600 mb-1">Doctor</label>
+              <select value={form.doctorId} onChange={(e)=>setForm(f=>({ ...f, doctorId: e.target.value }))} className="w-full px-3 py-2 border rounded-lg">
+                <option value="">Select doctor</option>
+                {doctors.map(d => (<option key={d.id} value={d.id}>{d.full_name || d.name}</option>))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">Date</label>
+              <input type="date" value={form.date} onChange={(e)=>setForm(f=>({ ...f, date: e.target.value }))} className="w-full px-3 py-2 border rounded-lg" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">Time</label>
+              <input type="time" value={form.time} onChange={(e)=>setForm(f=>({ ...f, time: e.target.value }))} className="w-full px-3 py-2 border rounded-lg" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">Duration (min)</label>
+              <input type="number" min="10" step="5" value={form.duration} onChange={(e)=>setForm(f=>({ ...f, duration: e.target.value }))} className="w-full px-3 py-2 border rounded-lg" />
+            </div>
+            <div className="md:col-span-6">
+              <label className="block text-xs text-gray-600 mb-1">Notes</label>
+              <input type="text" value={form.notes} onChange={(e)=>setForm(f=>({ ...f, notes: e.target.value }))} className="w-full px-3 py-2 border rounded-lg" placeholder="Optional notes" />
+            </div>
+            <div className="md:col-span-6 flex justify-end">
+              <button type="submit" disabled={bookingBusy} className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-green-600 text-white disabled:opacity-50">{bookingBusy ? 'Booking...' : 'Book Appointment'}</button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
