@@ -4,6 +4,7 @@ const patientSchema = new mongoose.Schema(
   {
     hospital_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital', index: true },
     user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // optional link to User for patient portal
+    assigned_doctor_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     name: { type: String, required: true, trim: true },
     email: { type: String, trim: true },
     phone: { type: String, trim: true },

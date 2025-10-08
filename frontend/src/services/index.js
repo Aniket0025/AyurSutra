@@ -119,6 +119,7 @@ function mapPatientForUI(p) {
     ...p,
     id,
     patient_id,
+    assigned_doctor_id: p.assigned_doctor_id || null,
     full_name: p.full_name || p.name,
     age,
     address: p.address,
@@ -182,6 +183,8 @@ export const Patient = {
       gender: body.gender,
       address: body.address,
       medical_history: body.medical_history || body.medicalHistory,
+      // forward doctor assignment by id if provided
+      ...(body.doctor_id ? { doctor_id: body.doctor_id } : {}),
       // Persist UI-only fields inside metadata
       metadata: {
         ...(body.metadata || {}),
@@ -209,6 +212,7 @@ export const Patient = {
       gender: body.gender,
       address: body.address,
       medical_history: body.medical_history || body.medicalHistory,
+      ...(Object.prototype.hasOwnProperty.call(body, 'doctor_id') ? { doctor_id: body.doctor_id } : {}),
       metadata: {
         ...(body.metadata || {}),
         current_conditions: Array.isArray(body.current_conditions)

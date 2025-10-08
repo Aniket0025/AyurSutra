@@ -88,6 +88,22 @@ export const createPatient = async (req, res) => {
       if (!req.user.hospital_id) return res.status(403).json({ message: 'Forbidden' });
       body.hospital_id = req.user.hospital_id;
     }
+    // Handle doctor assignment by ObjectId if provided
+    if (body.doctor_id) {
+      try {
+        const doctor = await User.findById(body.doctor_id);
+        if (!doctor) return res.status(400).json({ message: 'Invalid doctor_id' });
+        if (doctor.role !== 'doctor') return res.status(400).json({ message: 'doctor_id must refer to a doctor' });
+        if (String(doctor.hospital_id) !== String(body.hospital_id)) return res.status(400).json({ message: 'Doctor must belong to the same hospital' });
+        body.assigned_doctor_id = doctor._id;
+        body.metadata = body.metadata || {};
+        // Keep a human-friendly name as well
+        const docName = doctor.full_name || doctor.name;
+        if (docName) body.metadata.assigned_doctor = docName;
+      } catch (e) {
+        return res.status(400).json({ message: 'Invalid doctor_id' });
+      }
+    }
     const created = await Patient.create(body);
     res.status(201).json({ patient: created });
   } catch (e) {
@@ -109,7 +125,28 @@ export const updatePatient = async (req, res) => {
         return res.status(400).json({ message: 'Cannot change hospital_id' });
       }
     }
-    const updated = await Patient.findByIdAndUpdate(id, req.body, { new: true });
+    const patch = { ...req.body };
+    // Handle doctor assignment on update
+    if (Object.prototype.hasOwnProperty.call(patch, 'doctor_id')) {
+      if (!patch.doctor_id) {
+        // Clear assignment if empty string/null
+        patch.assigned_doctor_id = null;
+        patch.metadata = patch.metadata || {};
+        patch.metadata.assigned_doctor = undefined;
+      } else {
+        const doctor = await User.findById(patch.doctor_id);
+        if (!doctor) return res.status(400).json({ message: 'Invalid doctor_id' });
+        if (doctor.role !== 'doctor') return res.status(400).json({ message: 'doctor_id must refer to a doctor' });
+        if (String(doctor.hospital_id) !== String(existing.hospital_id)) return res.status(400).json({ message: 'Doctor must belong to the same hospital' });
+        patch.assigned_doctor_id = doctor._id;
+        patch.metadata = patch.metadata || {};
+        const docName = doctor.full_name || doctor.name;
+        if (docName) patch.metadata.assigned_doctor = docName;
+      }
+      // Do not persist doctor_id field directly
+      delete patch.doctor_id;
+    }
+    const updated = await Patient.findByIdAndUpdate(id, patch, { new: true });
     res.json({ patient: updated });
   } catch (e) {
     res.status(400).json({ message: e.message || 'Bad request' });
