@@ -39,11 +39,9 @@ const doctorNavItems = [
   { title: "Doctor's Dashboard", url: "DoctorDashboard", icon: Home },
   { title: "Appointments Management", url: "DoctorAppointments", icon: Calendar },
   { title: "Patient Management", url: "Patients", icon: Users },
-  { title: "Therapy Oversight", url: "TherapyScheduling", icon: Activity },
+  { title: "Prescription & Records", url: "PrescriptionRecords", icon: FileText },
+  { title: "Reports & Analytics", url: "Reports", icon: BarChart3 },
   { title: "Notifications", url: "Notifications", icon: Bell },
-  { title: "Reports & Analytics", url: "Analytics", icon: BarChart3 },
-  { title: "Prescription & Records", url: "Reports", icon: FileText },
-  { title: "Profile & Settings", url: "Settings", icon: Settings },
 ];
 
 const patientNavItems = [

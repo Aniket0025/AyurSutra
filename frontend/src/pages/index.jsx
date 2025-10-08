@@ -21,6 +21,7 @@ import Reports from "./Reports";
 import ReportsLive from "./ReportsLive.jsx";
 
 import Analytics from "./Analytics";
+import PrescriptionRecords from "./PrescriptionRecords.jsx";
 
 import DoctorDashboard from "./DoctorDashboard";
 
@@ -53,6 +54,7 @@ const PAGES = {
     Notifications: Notifications,
     Reports: Reports,
     Analytics: Analytics,
+    PrescriptionRecords: PrescriptionRecords,
     DoctorDashboard: DoctorDashboard,
     OfficeExecutiveDashboard: OfficeExecutiveDashboard,
     dashboard: Dashboard,
@@ -104,8 +106,10 @@ function PagesContent() {
                 <Route path="/TherapyScheduling" element={<RoleGuard roles={["super_admin","clinic_admin","doctor","patient","office_executive"]}> <TherapyScheduling /> </RoleGuard>} />
                 
                 <Route path="/Notifications" element={<RoleGuard roles={[]}> <Notifications /> </RoleGuard>} />
-                <Route path="/Reports" element={<RoleGuard roles={["super_admin","clinic_admin"]}> <ReportsLive /> </RoleGuard>} />
-                <Route path="/Analytics" element={<RoleGuard roles={["super_admin","clinic_admin"]}> <Analytics /> </RoleGuard>} />
+                {/* Prescription & Records */}
+                <Route path="/PrescriptionRecords" element={<RoleGuard roles={["doctor","patient","office_executive"]}> <PrescriptionRecords /> </RoleGuard>} />
+                <Route path="/Reports" element={<RoleGuard roles={["super_admin","clinic_admin","doctor"]}> <ReportsLive /> </RoleGuard>} />
+                <Route path="/Analytics" element={<RoleGuard roles={["super_admin","clinic_admin","doctor"]}> <Analytics /> </RoleGuard>} />
                 <Route path="/DoctorDashboard" element={<RoleGuard roles={["doctor","super_admin"]}> <DoctorDashboard /> </RoleGuard>} />
                 {/* lowercase alias for role-based redirect */}
                 <Route path="/doctordashboard" element={<RoleGuard roles={["doctor","super_admin"]}> <DoctorDashboard /> </RoleGuard>} />
