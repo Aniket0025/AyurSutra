@@ -192,6 +192,7 @@ Dashboard.propTypes = {
             <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
               <KpiCard title="Total Patients" value={clinicSummary.patients} icon={Users} iconBg="bg-green-100 text-green-600" loading={clinicLoading} to="/Patients" />
               <KpiCard title="Doctors" value={clinicSummary.doctors} icon={UserCheck} iconBg="bg-indigo-100 text-indigo-600" loading={clinicLoading} to="/Staff" />
+              <KpiCard title="Therapists" value={clinicSummary.therapists} icon={Users} iconBg="bg-teal-100 text-teal-600" loading={clinicLoading} to="/Staff" />
               <KpiCard title="Office Executives" value={clinicSummary.office_executives} icon={Briefcase} iconBg="bg-orange-100 text-orange-600" loading={clinicLoading} to="/Staff" />
               <KpiCard title="Appointments Today" value={clinicSummary.visits_today} icon={CalendarIcon} iconBg="bg-rose-100 text-rose-600" loading={clinicLoading} to="/TherapyScheduling" />
               <KpiCard title="Completed (MTD)" value={clinicSummary.sessions_completed_mtd} icon={BarChart3} iconBg="bg-emerald-100 text-emerald-600" loading={clinicLoading} to="/TherapyScheduling" />
