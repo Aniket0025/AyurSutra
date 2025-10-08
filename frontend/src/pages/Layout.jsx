@@ -57,6 +57,7 @@ const patientNavItems = [
 const officeExecutiveNavItems = [
   { title: "Office Executive Dashboard", url: "OfficeExecutiveDashboard", icon: Home },
   { title: "Patient Registration", url: "Patients", icon: Users },
+  { title: "Appointments", url: "OfficeAppointments", icon: Calendar },
   { title: "Therapy Scheduling", url: "TherapyScheduling", icon: Calendar },
   { title: "Settings", url: "Settings", icon: Settings },
 ];

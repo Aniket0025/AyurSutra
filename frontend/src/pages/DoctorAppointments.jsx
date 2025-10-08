@@ -29,9 +29,21 @@ export default function DoctorAppointments({ currentUser }) {
       if (uniqueIds.length) {
         const entries = await Promise.all(uniqueIds.map(async (pid) => {
           try {
-            const res = await Patient.filter({ user_id: pid });
-            const p = res && res[0];
-            const name = p?.full_name || p?.name || p?.email || pid;
+            // First try to find by linked user_id
+            let name;
+            try {
+              const res = await Patient.filter({ user_id: pid });
+              const p = res && res[0];
+              name = p?.full_name || p?.name;
+            } catch {}
+            if (!name) {
+              // If patient_id is actually a patient record id
+              try {
+                const p = await Patient.get(pid).catch(() => null);
+                name = p?.full_name || p?.name;
+              } catch {}
+            }
+            if (!name) name = pid;
             return [pid, name];
           } catch {
             return [pid, pid];

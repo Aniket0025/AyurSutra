@@ -12,6 +12,7 @@ import Settings from "./Settings";
 import Staff from "./Staff";
 
 import TherapyScheduling from "./TherapyScheduling";
+import OfficeAppointments from "./OfficeAppointments";
 
 
 
@@ -50,6 +51,7 @@ const PAGES = {
     Settings: Settings,
     Staff: Staff,
     TherapyScheduling: TherapyScheduling,
+    OfficeAppointments: OfficeAppointments,
     Notifications: Notifications,
     Reports: Reports,
     Analytics: Analytics,
@@ -102,6 +104,7 @@ function PagesContent() {
 
                 <Route path="/Staff" element={<RoleGuard roles={["super_admin","clinic_admin"]}> <Staff /> </RoleGuard>} />
                 <Route path="/TherapyScheduling" element={<RoleGuard roles={["super_admin","clinic_admin","doctor","patient","office_executive"]}> <TherapyScheduling /> </RoleGuard>} />
+                <Route path="/OfficeAppointments" element={<RoleGuard roles={["office_executive","clinic_admin"]}> <OfficeAppointments /> </RoleGuard>} />
                 
                 <Route path="/Notifications" element={<RoleGuard roles={[]}> <Notifications /> </RoleGuard>} />
                 <Route path="/Reports" element={<RoleGuard roles={["super_admin","clinic_admin"]}> <ReportsLive /> </RoleGuard>} />

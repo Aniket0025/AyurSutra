@@ -16,6 +16,8 @@ export const createAppointment = async (req, res) => {
       start_time,
       end_time,
       notes,
+      patient_user_id,
+      patient_record_id,
     } = req.body || {};
 
     if (!hospital_id || !staff_id || !type || !start_time || !end_time) {
@@ -31,8 +33,19 @@ export const createAppointment = async (req, res) => {
       return res.status(400).json({ message: 'Selected user is not a doctor' });
     }
 
-    // Patient id is the authenticated user by default
-    const patient_id = user?._id || req.userId;
+    // Resolve patient id: allow staff to book on behalf of a patient
+    let patient_id = user?._id || req.userId;
+    if (patient_user_id) {
+      // When staff books for a patient, trust provided id
+      patient_id = patient_user_id;
+    } else if (patient_record_id) {
+      // Resolve user_id from patient record
+      try {
+        const pRec = await Patient.findById(patient_record_id);
+        if (pRec?.user_id) patient_id = pRec.user_id;
+        else if (pRec?._id) patient_id = pRec._id; // fallback to patient record id
+      } catch {}
+    }
     if (!patient_id) return res.status(401).json({ message: 'Unauthorized' });
 
     // Scope: hospital must match staff
@@ -58,6 +71,7 @@ export const createAppointment = async (req, res) => {
         patient = await Patient.create({
           hospital_id: hospital._id,
           user_id: patient_id,
+          // Best-effort identity; if creator isn't the patient, try to fetch the patient's user profile
           name: user?.full_name || user?.name || 'Patient',
           email: user?.email || undefined,
           phone: user?.phone || undefined,

@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import { Patient } from '@/services';
 import { TherapySession } from '@/services';
 import { Feedback } from '@/services';
+import { Appointments } from '@/services';
 
 const generatePDFReport = (patient, sessions, feedback) => {
   // Create a comprehensive HTML structure for PDF generation
@@ -361,6 +362,8 @@ export default function PatientDetailModal({ isOpen, onClose, patientId }) {
   const [sessions, setSessions] = useState([]);
   const [feedback, setFeedback] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [booking, setBooking] = useState({ date: '', time: '', duration: 30, notes: '' });
+  const [bookingBusy, setBookingBusy] = useState(false);
 
   const loadPatientDetails = useCallback(async () => {
     if (!patientId) return;
@@ -396,6 +399,40 @@ export default function PatientDetailModal({ isOpen, onClose, patientId }) {
         message: `Comprehensive report for ${patient.full_name} has been generated and is ready for download.`,
         autoClose: true
       });
+    }
+  };
+
+  const handleBookAppointment = async (e) => {
+    e?.preventDefault?.();
+    if (!patient?.hospital_id) {
+      return window.showNotification?.({ type: 'error', title: 'Missing Clinic', message: 'Patient is not linked to a clinic.' });
+    }
+    if (!patient?.assigned_doctor_id) {
+      return window.showNotification?.({ type: 'error', title: 'Assign Doctor', message: 'Assign a doctor to the patient first.' });
+    }
+    if (!booking.date || !booking.time) {
+      return window.showNotification?.({ type: 'error', title: 'Missing Date/Time', message: 'Select appointment date and time.' });
+    }
+    try {
+      setBookingBusy(true);
+      const start = new Date(`${booking.date}T${booking.time}:00`);
+      const end = new Date(start.getTime() + (Number(booking.duration) || 30) * 60000);
+      await Appointments.book({
+        hospital_id: patient.hospital_id,
+        staff_id: patient.assigned_doctor_id,
+        type: 'doctor',
+        start_time: start.toISOString(),
+        end_time: end.toISOString(),
+        notes: booking.notes || `Appointment for patient ${patient.full_name}`,
+      });
+      window.showNotification?.({ type: 'success', title: 'Appointment Booked', message: 'The appointment has been scheduled.' });
+      // reset
+      setBooking({ date: '', time: '', duration: 30, notes: '' });
+    } catch (err) {
+      console.error('Failed to book appointment', err);
+      window.showNotification?.({ type: 'error', title: 'Booking Failed', message: err?.message || 'Unable to book appointment.' });
+    } finally {
+      setBookingBusy(false);
     }
   };
 
@@ -555,6 +592,46 @@ export default function PatientDetailModal({ isOpen, onClose, patientId }) {
                   </div>
                 ) : (
                   <p className="text-gray-500 text-center py-4">No therapy sessions recorded yet.</p>
+                )}
+              </div>
+
+              {/* Appointment Section */}
+              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <Calendar className="w-6 h-6 text-teal-600" />
+                    <h3 className="text-lg font-bold text-gray-800">Book Appointment</h3>
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    Doctor: <span className="font-semibold">{patient.assigned_doctor || 'Not assigned'}</span>
+                  </div>
+                </div>
+                <form onSubmit={handleBookAppointment} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">Date</label>
+                    <input type="date" value={booking.date} onChange={e=>setBooking(b=>({ ...b, date: e.target.value }))} className="w-full px-3 py-2 border rounded-lg" />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">Time</label>
+                    <input type="time" value={booking.time} onChange={e=>setBooking(b=>({ ...b, time: e.target.value }))} className="w-full px-3 py-2 border rounded-lg" />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">Duration (min)</label>
+                    <input type="number" min="10" step="5" value={booking.duration} onChange={e=>setBooking(b=>({ ...b, duration: e.target.value }))} className="w-full px-3 py-2 border rounded-lg" />
+                  </div>
+                  <div className="md:col-span-4">
+                    <label className="block text-sm text-gray-600 mb-1">Notes</label>
+                    <input type="text" value={booking.notes} onChange={e=>setBooking(b=>({ ...b, notes: e.target.value }))} placeholder="Optional notes" className="w-full px-3 py-2 border rounded-lg" />
+                  </div>
+                  <div className="md:col-span-4 flex justify-end gap-3">
+                    <button type="button" onClick={()=>setBooking({ date: '', time: '', duration: 30, notes: '' })} className="px-4 py-2 rounded-lg border">Clear</button>
+                    <button type="submit" disabled={bookingBusy || !patient?.assigned_doctor_id} className="px-4 py-2 rounded-lg bg-gradient-to-r from-teal-600 to-green-600 text-white disabled:opacity-50">
+                      {bookingBusy ? 'Booking...' : 'Book Appointment'}
+                    </button>
+                  </div>
+                </form>
+                {!patient?.assigned_doctor_id && (
+                  <p className="text-xs text-red-500 mt-2">Assign a doctor to enable appointment booking.</p>
                 )}
               </div>
             </div>
