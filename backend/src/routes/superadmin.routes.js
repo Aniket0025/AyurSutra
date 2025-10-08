@@ -7,7 +7,8 @@ import {
   reassignClinicAdmin,
   listDoctorsByClinic,
   listFeedbacksByClinic,
-  getClinicProgress
+  getClinicProgress,
+  seedDemoData
 } from '../controllers/superadmin.controller.js';
 
 const router = Router();
@@ -19,6 +20,9 @@ router.get('/clinics/:hospitalId/finances', getClinicFinances);
 router.get('/clinics/:hospitalId/doctors', listDoctorsByClinic);
 router.get('/clinics/:hospitalId/feedbacks', listFeedbacksByClinic);
 router.get('/clinics/:hospitalId/progress', getClinicProgress);
+
+// DEV utility: seed demo data for charts
+router.post('/seed', seedDemoData);
 
 router.post('/clinics/:hospitalId/admin', createClinicAdmin);
 router.put('/clinics/:hospitalId/admin', reassignClinicAdmin);

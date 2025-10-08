@@ -1,5 +1,5 @@
-
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { User } from '@/services';
 import { Patient } from '@/services';
 import { X, Plus, UserPlus, Heart, MapPin, Shield } from 'lucide-react';
@@ -55,6 +55,31 @@ export default function AddPatientModal({ isOpen, onClose, onPatientAdded, patie
         progressScore: 0
       });
     }
+
+AddPatientModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onPatientAdded: PropTypes.func.isRequired,
+  patient: PropTypes.shape({
+    id: PropTypes.any,
+    full_name: PropTypes.string,
+    email: PropTypes.string,
+    phone: PropTypes.string,
+    age: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    gender: PropTypes.string,
+    address: PropTypes.string,
+    medical_history: PropTypes.string,
+    current_conditions: PropTypes.arrayOf(PropTypes.string),
+    allergies: PropTypes.arrayOf(PropTypes.string),
+    assigned_doctor: PropTypes.string,
+    _ids: PropTypes.array,
+    progress_score: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  }),
+  currentUser: PropTypes.shape({
+    full_name: PropTypes.string,
+    hospital_id: PropTypes.any,
+  }),
+};
 
     // Load potential s
     const loads = async () => {
@@ -139,9 +164,9 @@ export default function AddPatientModal({ isOpen, onClose, onPatientAdded, patie
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[95vh] flex flex-col">
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex p-4 md:p-6 overflow-y-auto">
+      <div className="relative bg-white rounded-3xl shadow-2xl w-full md:w-[92vw] lg:w-[84vw] xl:w-[70vw] max-w-[1160px] max-h-[calc(100vh-2rem)] md:max-h-[calc(100vh-3rem)] flex flex-col mx-auto">
+        <div className="sticky top-0 z-10 flex items-center justify-between p-6 border-b border-gray-100 bg-white rounded-t-3xl">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center">
               {patient ? <UserPlus className="w-5 h-5 text-white" /> : <Plus className="w-5 h-5 text-white" />}
@@ -155,14 +180,14 @@ export default function AddPatientModal({ isOpen, onClose, onPatientAdded, patie
           </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="flex-grow overflow-y-auto p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="flex-grow overflow-y-auto p-6 space-y-6 overscroll-contain">
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
               {error}
             </div>
           )}
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 lg:gap-x-8 gap-y-6">
             {/* Left Column */}
             <div>
               <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-2xl space-y-4">
@@ -227,7 +252,7 @@ export default function AddPatientModal({ isOpen, onClose, onPatientAdded, patie
           </div>
         </form>
 
-        <div className="p-6 border-t border-gray-100 flex justify-end gap-3">
+        <div className="sticky bottom-0 z-10 p-6 border-t border-gray-100 flex justify-end gap-3 bg-white rounded-b-3xl">
           <button 
             type="button" 
             onClick={onClose}

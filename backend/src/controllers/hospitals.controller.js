@@ -1,9 +1,14 @@
 import { Hospital } from '../models/Hospital.js';
 import { User } from '../models/User.js';
+import { Patient } from '../models/Patient.js';
+import { FinanceTransaction } from '../models/FinanceTransaction.js';
+import { TherapySession } from '../models/TherapySession.js';
+import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 function isSuperAdmin(user) { return user?.role === 'super_admin'; }
 function isHospitalAdmin(user) { return user?.role === 'hospital_admin'; }
+function isClinicAdmin(user) { return user?.role === 'clinic_admin'; }
 function isAdmin(user) { return user?.role === 'admin'; }
 
 export const listHospitals = async (req, res) => {
@@ -32,20 +37,135 @@ export const listHospitals = async (req, res) => {
   }
 };
 
+export const updateStaff = async (req, res) => {
+  try {
+    const { id: hospitalId, userId } = req.params;
+    // Scope: super/admin allowed; hospital_admin/clinic_admin only for their own hospital
+    if (!isSuperAdmin(req.user) && !isAdmin(req.user)) {
+      if (!req.user.hospital_id || String(req.user.hospital_id) !== String(hospitalId)) {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+    }
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    if (String(user.hospital_id) !== String(hospitalId)) {
+      return res.status(400).json({ message: 'User not in this hospital' });
+    }
+
+    const allowedRoles = new Set(['doctor','office_executive']);
+    if (!allowedRoles.has(user.role)) {
+      return res.status(400).json({ message: 'Cannot update this role via hospital staff endpoint' });
+    }
+
+    const { full_name, email, phone, department, role, password } = req.body || {};
+    if (role && !allowedRoles.has(String(role))) {
+      return res.status(400).json({ message: 'Invalid role' });
+    }
+
+    if (typeof full_name === 'string') user.name = full_name;
+    if (typeof email === 'string') user.email = email;
+    if (typeof phone === 'string') user.phone = phone;
+    if (typeof department === 'string') user.department = department;
+    if (role) user.role = role;
+
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      user.passwordHash = await bcrypt.hash(String(password), salt);
+    }
+
+    await user.save();
+    return res.json({ message: 'Staff updated', user: user.toJSON() });
+  } catch (e) {
+    console.error('updateStaff error:', e);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Summary KPIs for a hospital (patients, staff, revenue)
+export const getHospitalSummary = async (req, res) => {
+  try {
+    const { id: hospitalId } = req.params;
+
+    // Access control: hospital_admin/clinic_admin can only access their own hospital
+    if (!isSuperAdmin(req.user) && !isAdmin(req.user)) {
+      if (!req.user.hospital_id || String(req.user.hospital_id) !== String(hospitalId)) {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+    }
+
+    const firstOfMonth = new Date();
+    firstOfMonth.setDate(1); firstOfMonth.setHours(0,0,0,0);
+    const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
+    const endOfToday = new Date(); endOfToday.setHours(23,59,59,999);
+
+    const hid = mongoose.Types.ObjectId(hospitalId);
+
+    const [patientsCount, patientUsersCount, doctorsCount, execsCount, financeAgg, financeAggMTD, patientsMTD, patientUsersMTD, apptTotal, completedMTD, visitsToday] = await Promise.all([
+      Patient.countDocuments({ $or: [ { hospital_id: hid }, { hospital_id: String(hid) } ] }),
+      User.countDocuments({ hospital_id: hid, role: 'patient' }),
+      User.countDocuments({ hospital_id: hid, role: 'doctor' }),
+      User.countDocuments({ hospital_id: hid, role: 'office_executive' }),
+      FinanceTransaction.aggregate([
+        { $match: { hospital_id: hid } },
+        { $group: { _id: '$type', total: { $sum: '$amount' } } }
+      ]),
+      FinanceTransaction.aggregate([
+        { $match: { hospital_id: hid, createdAt: { $gte: firstOfMonth } } },
+        { $group: { _id: '$type', total: { $sum: '$amount' } } }
+      ]),
+      Patient.countDocuments({ $or: [ { hospital_id: hid }, { hospital_id: String(hid) } ], createdAt: { $gte: firstOfMonth } }),
+      User.countDocuments({ hospital_id: hid, role: 'patient', createdAt: { $gte: firstOfMonth } }),
+      TherapySession.countDocuments({ $or: [ { hospital_id: hid }, { hospital_id: String(hid) } ] }),
+      TherapySession.countDocuments({ $or: [ { hospital_id: hid }, { hospital_id: String(hid) } ], status: 'completed', 'outcomes.completed_at': { $gte: firstOfMonth } }),
+      TherapySession.countDocuments({ $or: [ { hospital_id: hid }, { hospital_id: String(hid) } ], scheduled_at: { $gte: startOfToday, $lte: endOfToday }, status: { $ne: 'cancelled' } }),
+    ]);
+
+    const income = financeAgg.find(f => f._id === 'income')?.total || 0;
+    const expense = financeAgg.find(f => f._id === 'expense')?.total || 0;
+    const net = income - expense;
+    const income_mtd = financeAggMTD.find(f => f._id === 'income')?.total || 0;
+    const expense_mtd = financeAggMTD.find(f => f._id === 'expense')?.total || 0;
+
+    // Fallback for legacy data where patients are stored as users with role 'patient'
+    const patientsFinal = patientsCount > 0 ? patientsCount : patientUsersCount;
+    const patientsMTDFinal = patientsMTD > 0 ? patientsMTD : patientUsersMTD;
+
+    return res.json({
+      patients: patientsFinal,
+      doctors: doctorsCount,
+      office_executives: execsCount,
+      income,
+      expense,
+      net,
+      revenue_mtd: income_mtd,
+      expense_mtd,
+      patients_mtd: patientsMTDFinal,
+      appointments_total: apptTotal,
+      sessions_completed_mtd: completedMTD,
+      visits_today: visitsToday
+    });
+  } catch (e) {
+    console.error('getHospitalSummary error:', e);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
 export const listStaff = async (req, res) => {
   try {
     const { id: hospitalId } = req.params;
     // Scope rules:
     // - super_admin/admin: can view any hospital's staff
-    // - hospital_admin: can view only their own hospital's staff
+    // - hospital_admin/clinic_admin: can view only their own hospital's staff
     // - other roles (patient/doctor/office_executive/guardian): can view any hospital's staff (read-only for booking)
-    if (isHospitalAdmin(req.user) && !isSuperAdmin(req.user) && !isAdmin(req.user)) {
+    if ((isHospitalAdmin(req.user) || isClinicAdmin(req.user)) && !isSuperAdmin(req.user) && !isAdmin(req.user)) {
       if (!req.user.hospital_id || String(req.user.hospital_id) !== String(hospitalId)) {
         return res.status(403).json({ message: 'Forbidden' });
       }
     }
     const allowedRoles = ['doctor','office_executive'];
-    const users = await User.find({ hospital_id: hospitalId, role: { $in: allowedRoles } });
+    const hid = mongoose.Types.ObjectId.isValid(hospitalId) ? new mongoose.Types.ObjectId(hospitalId) : hospitalId;
+    const users = await User.find({ $or: [ { hospital_id: hid }, { hospital_id: String(hid) } ], role: { $in: allowedRoles } });
     return res.json({ staff: users.map(u => u.toJSON()) });
   } catch (e) {
     console.error('listStaff error:', e);
@@ -91,7 +211,7 @@ export const assignStaff = async (req, res) => {
       department,
     } = req.body || {};
 
-    // Scope: hospital_admin can only assign to their own hospital
+    // Scope: hospital_admin/clinic_admin can only assign to their own hospital
     if (!isSuperAdmin(req.user) && !isAdmin(req.user)) {
       if (!req.user.hospital_id || String(req.user.hospital_id) !== String(hospitalId)) {
         return res.status(403).json({ message: 'Forbidden' });

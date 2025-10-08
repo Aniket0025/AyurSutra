@@ -1,7 +1,6 @@
-
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
+import PropTypes from 'prop-types';
 import { Patient } from "@/services";
-import { Hospital } from "@/services";
 import { User } from "@/services";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
@@ -10,21 +9,14 @@ import {
   Search,
   Eye,
   Edit,
-  Shield,
   Trash2,
-  MapPin,
   Filter,
-  Download,
-  Upload,
-  UserPlus,
   MoreVertical,
-  Activity,
   Heart,
   Phone,
-  Mail
+  
 } from "lucide-react";
 import AddPatientModal from "../components/patients/AddPatientModal";
-import AssignGuardianModal from "../components/guardians/AssignGuardianModal"; // Keep this import as the modal is used
 import PatientDetailModal from "../components/patients/PatientDetailModal";
 import BulkUploadModal from "../components/patients/BulkUploadModal";
 
@@ -34,7 +26,6 @@ export default function PatientsPage({ currentUser }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
-  // Fallback to fetch user if not passed by parent guards/layout
   const [self, setSelf] = useState(currentUser);
 
   useEffect(() => {
@@ -47,14 +38,18 @@ export default function PatientsPage({ currentUser }) {
         } catch {
           if (mounted) setSelf(null);
         }
+
+PatientsPage.propTypes = {
+  currentUser: PropTypes.object,
+};
       })();
     } else {
       setSelf(currentUser);
     }
     return () => { mounted = false; };
   }, [currentUser]);
+
   const [isAddPatientModalOpen, setIsAddPatientModalOpen] = useState(false); // Renamed state variable
-  const [showGuardianModal, setShowGuardianModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [editingPatient, setEditingPatient] = useState(null);
   const [selectedPatientId, setSelectedPatientId] = useState(null);
@@ -164,10 +159,7 @@ export default function PatientsPage({ currentUser }) {
     setIsAddPatientModalOpen(true); // Changed to new state variable
   };
 
-  const handleAssignGuardian = (patient) => {
-    setEditingPatient(patient);
-    setShowGuardianModal(true);
-  };
+  // handleAssignGuardian removed
 
   const getStatusColor = (status) => {
     const colors = {
@@ -186,7 +178,7 @@ export default function PatientsPage({ currentUser }) {
     return 'from-red-500 to-red-600';
   };
 
-  const PatientCard = ({ patient, onEdit, onDelete, onViewDetails, onAssignGuardian }) => {
+  const PatientCard = ({ patient, onEdit, onDelete, onViewDetails }) => {
     const safeProgressScore = Number(patient.progress_score) || 0;
 
     return (
@@ -229,9 +221,7 @@ export default function PatientsPage({ currentUser }) {
                 <button onClick={() => onEdit(patient)} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
                   <Edit className="w-4 h-4" /> Edit Patient
                 </button>
-                <button onClick={() => onAssignGuardian(patient)} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
-                  <Shield className="w-4 h-4" /> Assign Guardian
-                </button>
+                {/* Assign Guardian removed */}
                 <button onClick={() => onDelete(patient.id)} className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
                   <Trash2 className="w-4 h-4" /> Delete Patient
                 </button>
@@ -290,6 +280,25 @@ export default function PatientsPage({ currentUser }) {
         )}
       </motion.div>
     );
+  };
+  // PropTypes for inner card component (declared inside to avoid scope issues)
+  PatientCard.propTypes = {
+    patient: PropTypes.shape({
+      id: PropTypes.any,
+      full_name: PropTypes.string,
+      patient_id: PropTypes.string,
+      age: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      status: PropTypes.string,
+      progress_score: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+      assigned_doctor: PropTypes.string,
+      phone: PropTypes.string,
+      appointment_count: PropTypes.number,
+      last_appointment: PropTypes.any,
+      current_conditions: PropTypes.arrayOf(PropTypes.string),
+    }).isRequired,
+    onEdit: PropTypes.func.isRequired,
+    onDelete: PropTypes.func.isRequired,
+    onViewDetails: PropTypes.func.isRequired,
   };
 
   if (!self || isLoading) {
@@ -359,7 +368,7 @@ export default function PatientsPage({ currentUser }) {
                     patient={patient}
                     onEdit={handleEditPatient}
                     onViewDetails={handleViewDetails}
-                    onAssignGuardian={handleAssignGuardian}
+                    
                     onDelete={deletePatient} // Changed to new function name
                   />
                 ))}
@@ -406,7 +415,6 @@ export default function PatientsPage({ currentUser }) {
         onClose={() => setShowDetailModal(false)}
         patientId={selectedPatientId}
         onEditPatient={handleEditPatient}
-        onAssignGuardian={handleAssignGuardian}
       />
 
       <BulkUploadModal
@@ -415,16 +423,11 @@ export default function PatientsPage({ currentUser }) {
         onUploadComplete={loadPatients}
       />
 
-      <AssignGuardianModal
-        isOpen={showGuardianModal}
-        onClose={() => {
-          setShowGuardianModal(false);
-          setEditingPatient(null);
-        }}
-        patient={editingPatient}
-        onAssignmentComplete={loadPatients}
-        currentUser={currentUser}
-      />
+      {/* AssignGuardianModal removed */}
     </>
   );
 }
+
+PatientsPage.propTypes = {
+  currentUser: PropTypes.object,
+};

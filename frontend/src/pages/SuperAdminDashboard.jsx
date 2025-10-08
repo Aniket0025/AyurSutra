@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import PropTypes from 'prop-types';
 import { SuperAdmin, Hospital, Patient } from "@/services";
 import { Building, Users, IndianRupee, UserRound, RefreshCcw, Calendar, CalendarDays, Gauge } from "lucide-react";
 
@@ -205,3 +206,10 @@ function SummaryCard({ title, value, icon, iconBg = "bg-gray-100 text-gray-600" 
     </div>
   );
 }
+
+SummaryCard.propTypes = {
+  title: PropTypes.oneOfType([PropTypes.string, PropTypes.node]).isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  icon: PropTypes.node.isRequired,
+  iconBg: PropTypes.string,
+};

@@ -1,13 +1,15 @@
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Notification, Hospital } from "@/services";
 import { User } from "@/services";
-import { Bell, Check, X, AlertTriangle, Calendar, Edit, Shield, Send, Filter, Search, Building2 } from "lucide-react";
+import { Bell, Check, X, AlertTriangle, Calendar, Edit, Shield, Send, Search, Building2 } from "lucide-react";
 import { formatDistanceToNow, isWithinInterval } from "date-fns";
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState([]);
-  const [activeTab, setActiveTab] = useState("all");
+  // Incoming/Outgoing segregation
+  const [incoming, setIncoming] = useState([]);
+  const [outgoing, setOutgoing] = useState([]);
+  const [activeTab, setActiveTab] = useState('incoming'); // incoming | outgoing
   const [isLoading, setIsLoading] = useState(true);
   const [me, setMe] = useState(null);
 
@@ -20,7 +22,7 @@ export default function NotificationsPage() {
   const [dateTo, setDateTo] = useState("");
   const [clinics, setClinics] = useState([]);
 
-  // compose (super admin)
+  // compose (super admin -> clinics)
   const [compose, setCompose] = useState({
     title: "",
     message: "",
@@ -30,22 +32,49 @@ export default function NotificationsPage() {
   });
   const [sending, setSending] = useState(false);
 
+  // clinic admin compose -> doctors/office_executives in own clinic
+  const [clinicCompose, setClinicCompose] = useState({
+    title: '',
+    message: '',
+    type: 'general',
+    priority: 'normal',
+    roles: ['doctor','office_executive'],
+    userIds: [],
+  });
+  const [clinicStaff, setClinicStaff] = useState([]);
+
+  // drafts (persist per user in localStorage)
+  const [drafts, setDrafts] = useState([]); // [{id, kind:'super'|'clinic', title, updatedAt, data}]
+
   useEffect(() => {
     (async () => {
       try {
         const user = await User.me();
         setMe(user);
+        // load drafts for this user
+        try {
+          const raw = localStorage.getItem(`notif_drafts_${user.id}`);
+          if (raw) setDrafts(JSON.parse(raw));
+        } catch (e) { console.debug('Failed to load drafts', e); }
+        // preload clinics for super admin
         if (user.role === 'super_admin') {
-          // preload clinics for targeting
           const list = await Hospital.list();
           setClinics(list);
-          // load sent notifications (best-effort; depends on backend support)
-          const sent = await Notification.filter({ sender_id: user.id }, "-created_date", 100).catch(() => []);
-          setNotifications(sent || []);
-        } else {
-          const userNotifications = await Notification.filter({ recipient_id: user.id }, "-created_date", 50);
-          setNotifications(userNotifications);
         }
+
+        // preload clinic staff for clinic_admin
+        if (user.role === 'clinic_admin' && user.hospital_id) {
+          const staff = await Hospital.listStaff(user.hospital_id).catch(() => []);
+          setClinicStaff(staff || []);
+        }
+
+        // load incoming and outgoing lists
+        const [inc, out] = await Promise.all([
+          Notification.filter({ recipient_id: user.id }, "-created_date", 100).catch(() => []),
+          Notification.filter({ sender_id: user.id }, "-created_date", 100).catch(() => []),
+        ]);
+        setIncoming(inc || []);
+        setOutgoing(out || []);
       } catch (error) {
         console.error("Failed to load notifications:", error);
       }
@@ -53,12 +82,38 @@ export default function NotificationsPage() {
     })();
   }, []);
 
+  // helpers to persist drafts
+  const persistDrafts = (arr, userId = me?.id) => {
+    setDrafts(arr);
+    try { if (userId) localStorage.setItem(`notif_drafts_${userId}`, JSON.stringify(arr)); } catch (e) { console.debug('Failed to persist drafts', e); }
+  };
+  const saveDraft = (kind) => {
+    const now = new Date().toISOString();
+    if (kind === 'super') {
+      if (!compose.title && !compose.message) return;
+      const d = { id: crypto.randomUUID?.() || String(Date.now()), kind, title: compose.title || 'Untitled', updatedAt: now, data: { ...compose } };
+      persistDrafts([d, ...drafts], me?.id);
+      window.showNotification?.({ type: 'success', title: 'Draft saved', message: 'Your draft has been saved.' });
+    } else {
+      if (!clinicCompose.title && !clinicCompose.message) return;
+      const d = { id: crypto.randomUUID?.() || String(Date.now()), kind, title: clinicCompose.title || 'Untitled', updatedAt: now, data: { ...clinicCompose } };
+      persistDrafts([d, ...drafts], me?.id);
+      window.showNotification?.({ type: 'success', title: 'Draft saved', message: 'Your draft has been saved.' });
+    }
+  };
+  const loadDraft = (d) => {
+    if (d.kind === 'super') setCompose(d.data);
+    if (d.kind === 'clinic') setClinicCompose(d.data);
+  };
+  const deleteDraft = (id) => {
+    const next = drafts.filter(x => x.id !== id);
+    persistDrafts(next, me?.id);
+  };
+
   const markAsRead = async (id) => {
     try {
       await Notification.update(id, { is_read: true });
-      setNotifications(
-        notifications.map((n) => (n.id === id ? { ...n, is_read: true } : n))
-      );
+      setIncoming(incoming.map(n => (n.id === id ? { ...n, is_read: true } : n)));
     } catch (error) {
       console.error("Failed to mark notification as read:", error);
     }
@@ -100,7 +155,8 @@ export default function NotificationsPage() {
       // refresh sent list for super admin
       if (me?.role === 'super_admin') {
         const sent = await Notification.filter({ sender_id: me.id }, "-created_date", 100).catch(() => []);
-        setNotifications(sent || []);
+        setOutgoing(sent || []);
+        setActiveTab('outgoing');
       }
       setCompose({ title: '', message: '', type: 'general', priority: 'normal', clinicIds: [] });
     } catch (err) {
@@ -111,17 +167,55 @@ export default function NotificationsPage() {
     }
   };
 
+  const sendClinicNotifications = async () => {
+    if (!clinicCompose.title.trim() || !clinicCompose.message.trim()) {
+      return window.showNotification?.({ type: 'error', title: 'Missing fields', message: 'Title and message are required.' });
+    }
+    if (!me?.hospital_id) {
+      return window.showNotification?.({ type: 'error', title: 'No hospital', message: 'Your account is not linked to a hospital.' });
+    }
+    try {
+      setSending(true);
+      // Determine recipient set
+      let recipients = [];
+      if (clinicCompose.userIds.length) {
+        recipients = clinicStaff.filter(u => clinicCompose.userIds.includes(u.id || u._id));
+      } else {
+        const roleSet = new Set(clinicCompose.roles);
+        recipients = clinicStaff.filter(u => roleSet.has(u.role));
+      }
+      if (!recipients.length) {
+        return window.showNotification?.({ type: 'error', title: 'No recipients', message: 'Select at least one role or person.' });
+      }
+      await Promise.all(
+        recipients.map(u => Notification.create({
+          title: clinicCompose.title,
+          message: clinicCompose.message,
+          type: clinicCompose.type,
+          priority: clinicCompose.priority,
+          recipient_id: u.id || u._id,
+          hospital_id: me.hospital_id,
+        }))
+      );
+      window.showNotification?.({ type: 'success', title: 'Sent', message: `Sent to ${recipients.length} recipient(s).` });
+      // refresh outgoing list
+      const out = await Notification.filter({ sender_id: me.id }, "-created_date", 100).catch(() => []);
+      setOutgoing(out || []);
+      setActiveTab('outgoing');
+      setClinicCompose({ title: '', message: '', type: 'general', priority: 'normal', roles: ['doctor','office_executive'], userIds: [] });
+    } catch (err) {
+      console.error(err);
+      window.showNotification?.({ type: 'error', title: 'Failed to send', message: err?.details?.message || err.message || 'Could not send notifications' });
+    } finally {
+      setSending(false);
+    }
+  };
+
   const markAllAsRead = async () => {
     try {
-      const unreadIds = notifications
-        .filter((n) => !n.is_read)
-        .map((n) => n.id);
-      
-      // This is a simplification. In a real scenario, a `bulkUpdate` method would be ideal.
-      // For now, we update one by one.
+      const unreadIds = incoming.filter(n => !n.is_read).map(n => n.id);
       await Promise.all(unreadIds.map(id => Notification.update(id, { is_read: true })));
-
-      setNotifications(notifications.map((n) => ({ ...n, is_read: true })));
+      setIncoming(incoming.map(n => ({ ...n, is_read: true })));
     } catch (error) {
       console.error("Failed to mark all notifications as read:", error);
     }
@@ -144,15 +238,13 @@ export default function NotificationsPage() {
     }
   };
 
-  const filteredNotifications = notifications.filter((n) => {
-    // tab basics (kept for non-super usage)
-    if (activeTab === "unread" || filterStatus === 'unread') {
+  const list = activeTab === 'incoming' ? incoming : outgoing;
+  const filteredNotifications = list.filter((n) => {
+    // status filter
+    if (filterStatus === 'unread') {
       if (n.is_read) return false;
     } else if (filterStatus === 'read') {
       if (!n.is_read) return false;
-    }
-    if (activeTab === "alerts") {
-      if (!["pre_therapy", "schedule_change"].includes(n.type)) return false;
     }
     // rich filters
     if (filterType !== 'all' && n.type !== filterType) return false;
@@ -181,10 +273,10 @@ export default function NotificationsPage() {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Notifications Hub</h1>
-            <p className="text-gray-500">{me?.role === 'super_admin' ? 'Create and send announcements to clinics' : 'All your alerts and reminders in one place'}</p>
+            <p className="text-gray-500">{me?.role === 'super_admin' ? 'Create and send announcements to clinics' : 'Incoming alerts and your sent messages'}</p>
           </div>
         </div>
-        {me?.role !== 'super_admin' && (
+        {activeTab === 'incoming' && me?.role !== 'super_admin' && (
           <button
             onClick={markAllAsRead}
             className="flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-xl hover:bg-blue-200 transition-colors"
@@ -195,8 +287,14 @@ export default function NotificationsPage() {
         )}
       </div>
 
-      {/* Super Admin Composer */}
-      {me?.role === 'super_admin' && (
+      {/* Tabs */}
+      <div className="flex items-center gap-2 mb-6">
+        <button onClick={()=>setActiveTab('incoming')} className={`px-4 py-2 rounded-xl border ${activeTab==='incoming'?'bg-white shadow':'bg-gray-50 hover:bg-white'} `}>Incoming</button>
+        <button onClick={()=>setActiveTab('outgoing')} className={`px-4 py-2 rounded-xl border ${activeTab==='outgoing'?'bg-white shadow':'bg-gray-50 hover:bg-white'} `}>Outgoing</button>
+      </div>
+
+      {/* Super Admin Composer (Outgoing tab) */}
+      {activeTab === 'outgoing' && me?.role === 'super_admin' && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
           <div className="flex items-center gap-2 mb-4 text-gray-700 font-semibold">
             <Send className="w-4 h-4" /> Compose Notification
@@ -236,9 +334,79 @@ export default function NotificationsPage() {
               <option value="normal">Priority: Normal</option>
               <option value="high">Priority: High</option>
             </select>
+            <button onClick={()=>saveDraft('super')} className="px-4 py-2 border rounded-xl hover:bg-gray-50">Save Draft</button>
             <button disabled={sending} onClick={sendNotifications} className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-green-600 text-white px-6 py-2 rounded-xl hover:shadow-lg transition-all disabled:opacity-60">
               <Send className="w-4 h-4" /> {sending ? 'Sending...' : 'Send'}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Clinic Admin Composer (Outgoing tab) */}
+      {activeTab === 'outgoing' && me?.role === 'clinic_admin' && me?.hospital_id && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4 text-gray-700 font-semibold">
+            <Send className="w-4 h-4" /> Compose to Clinic Staff
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="md:col-span-2">
+              <input value={clinicCompose.title} onChange={(e)=>setClinicCompose(c=>({...c, title:e.target.value}))} className="w-full border border-gray-200 rounded-xl px-4 py-3" placeholder="Title" />
+            </div>
+            <select value={clinicCompose.type} onChange={(e)=>setClinicCompose(c=>({...c, type:e.target.value}))} className="border border-gray-200 rounded-xl px-4 py-3">
+              <option value="general">General</option>
+              <option value="schedule_change">Schedule Change</option>
+              <option value="pre_therapy">Pre-Therapy</option>
+              <option value="post_therapy">Post-Therapy</option>
+            </select>
+          </div>
+          <textarea value={clinicCompose.message} onChange={(e)=>setClinicCompose(c=>({...c, message:e.target.value}))} className="w-full border border-gray-200 rounded-xl px-4 py-3 mb-4" rows={3} placeholder="Write your message..." />
+
+          {/* Simple roles selector */}
+          <div className="mb-4">
+            <div className="text-sm text-gray-600 mb-2">Target Roles</div>
+            <div className="flex flex-wrap gap-2">
+              {['doctor','office_executive'].map(role => {
+                const checked = clinicCompose.roles.includes(role);
+                return (
+                  <label key={role} className={`flex items-center gap-2 border rounded-lg px-3 py-2 cursor-pointer ${checked ? 'border-blue-400 bg-blue-50' : 'border-gray-200'}`}>
+                    <input type="checkbox" className="accent-blue-600" checked={checked} onChange={()=>setClinicCompose(c=>({...c, roles: checked ? c.roles.filter(r=>r!==role) : [...c.roles, role]}))} />
+                    <span className="text-sm capitalize">{role.replace('_',' ')}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3">
+            <select value={clinicCompose.priority} onChange={(e)=>setClinicCompose(c=>({...c, priority:e.target.value}))} className="border border-gray-200 rounded-xl px-3 py-2 text-sm">
+              <option value="normal">Priority: Normal</option>
+              <option value="high">Priority: High</option>
+            </select>
+            <button onClick={()=>saveDraft('clinic')} className="px-4 py-2 border rounded-xl hover:bg-gray-50">Save Draft</button>
+            <button disabled={sending} onClick={sendClinicNotifications} className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-green-600 text-white px-6 py-2 rounded-xl hover:shadow-lg transition-all disabled:opacity-60">
+              <Send className="w-4 h-4" /> {sending ? 'Sending...' : 'Send to Staff'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Drafts panel (Outgoing tab) */}
+      {activeTab === 'outgoing' && drafts.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
+          <div className="text-sm font-semibold text-gray-700 mb-3">Your Drafts</div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            {drafts.map(d => (
+              <div key={d.id} className="border border-gray-200 rounded-xl p-3 flex items-center justify-between">
+                <div>
+                  <div className="font-medium text-gray-800 truncate">{d.title}</div>
+                  <div className="text-xs text-gray-400">{d.kind === 'super' ? 'To Clinics' : 'To Staff'} • {new Date(d.updatedAt).toLocaleString()}</div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={()=>loadDraft(d)} className="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50">Load</button>
+                  <button onClick={()=>deleteDraft(d.id)} className="px-3 py-1.5 text-sm border border-red-300 text-red-600 rounded-lg hover:bg-red-50">Delete</button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -273,7 +441,7 @@ export default function NotificationsPage() {
         </div>
       </div>
 
-      {/* Notifications List */}
+      {/* Notifications List (by tab) */}
       <div className="space-y-4">
         {isLoading ? (
           [...Array(5)].map((_, i) => (
@@ -303,7 +471,7 @@ export default function NotificationsPage() {
                   <div className="text-xs text-gray-400 mt-1">Clinic: {String(n.hospital_id || n.clinic_id)}</div>
                 )}
               </div>
-              {me?.role !== 'super_admin' && !n.is_read && (
+              {activeTab === 'incoming' && me?.role !== 'super_admin' && !n.is_read && (
                 <button
                   onClick={() => markAsRead(n.id)}
                   className="p-2 text-gray-400 hover:bg-gray-200 rounded-full"
@@ -316,8 +484,8 @@ export default function NotificationsPage() {
         ) : (
           <div className="text-center py-16">
             <Bell className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-500">No notifications</h3>
-            <p className="text-gray-400">{me?.role === 'super_admin' ? 'Send your first announcement using the composer above.' : "You're all caught up!"}</p>
+            <h3 className="text-lg font-medium text-gray-500">No {activeTab} notifications</h3>
+            <p className="text-gray-400">{activeTab==='outgoing' ? 'Your sent messages will appear here.' : (me?.role === 'super_admin' ? 'No incoming announcements.' : "You're all caught up!")}</p>
           </div>
         )}
       </div>

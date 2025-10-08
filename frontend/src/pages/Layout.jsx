@@ -31,7 +31,6 @@ const clinicAdminNavItems = [
   { title: "Patients", url: "Patients", icon: Users },
   { title: "Doctors & Staff", url: "Staff", icon: UserCheck },
   { title: "Therapy Scheduling", url: "TherapyScheduling", icon: Calendar },
-  { title: "Analytics", url: "Analytics", icon: BarChart3 },
   { title: "Reports", url: "Reports", icon: FileText },
   { title: "Notifications", url: "Notifications", icon: Bell },
 ];
@@ -96,7 +95,6 @@ const AppShell = ({ currentUser, handleLogout, children, navigateToLanding }) =>
   const location = useLocation();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const isSuperAdmin = currentUser?.role === 'super_admin';
 
   // Close menus when clicking outside
   useEffect(() => {
@@ -292,24 +290,22 @@ const AppShell = ({ currentUser, handleLogout, children, navigateToLanding }) =>
               </div>
             </div>
 
-            {/* Desktop Navigation - hide on super admin (sidebar shown) */}
-            {!isSuperAdmin && (
-              <nav className="hidden lg:flex items-center space-x-1 overflow-x-auto overflow-y-hidden no-scrollbar">
-                {(navMap[currentUser?.role] || []).map((item, index) => (
-                  <Link
-                    key={item.title}
-                    to={createPageUrl(item.url)}
-                    className={`nav-item flex items-center gap-2 px-3 py-2 rounded-xl text-white/90 hover:text-white hover:bg-white/15 transition-all font-medium text-sm whitespace-nowrap backdrop-blur-sm flex-shrink-0 ${
-                      location.pathname.includes(createPageUrl(item.url)) ? 'active text-white bg-white/15 shadow-lg' : ''
-                    }`}
-                    style={{ animationDelay: `${index * 0.1}s` }}
-                  >
-                    <item.icon className="w-4 h-4" />
-                    <span className="hidden xl:inline">{item.title}</span>
-                  </Link>
-                ))}
-              </nav>
-            )}
+            {/* Desktop Navigation - show for all roles */}
+            <nav className="hidden lg:flex items-center space-x-1 overflow-x-auto overflow-y-hidden no-scrollbar">
+              {(navMap[currentUser?.role] || []).map((item, index) => (
+                <Link
+                  key={item.title}
+                  to={createPageUrl(item.url)}
+                  className={`nav-item flex items-center gap-2 px-3 py-2 rounded-xl text-white/90 hover:text-white hover:bg-white/15 transition-all font-medium text-sm whitespace-nowrap backdrop-blur-sm flex-shrink-0 ${
+                    location.pathname.includes(createPageUrl(item.url)) ? 'active text-white bg-white/15 shadow-lg' : ''
+                  }`}
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <item.icon className="w-4 h-4" />
+                  <span className="hidden xl:inline">{item.title}</span>
+                </Link>
+              ))}
+            </nav>
 
             {/* Profile Menu & Mobile Menu Trigger */}
             <div className="flex items-center gap-2">
@@ -388,36 +384,7 @@ const AppShell = ({ currentUser, handleLogout, children, navigateToLanding }) =>
         </div>
       </header>
 
-      {/* Super Admin Sidebar (Desktop) */}
-      {isSuperAdmin && (
-        <aside className="hidden lg:flex fixed top-0 left-0 h-full w-64 medical-sidebar text-white z-30 pt-24 pb-6 flex-col border-r border-white/10">
-          <div className="px-4 pb-4 text-sm text-white/70">Super Admin</div>
-          <nav className="flex-1 overflow-y-auto no-scrollbar px-2 space-y-1">
-            {(navMap[currentUser?.role] || []).map((item) => (
-              <Link
-                key={item.title}
-                to={createPageUrl(item.url)}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                  location.pathname.includes(createPageUrl(item.url))
-                    ? 'bg-white/15 text-white'
-                    : 'text-white/80 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                <item.icon className="w-4 h-4" />
-                <span className="text-sm font-medium">{item.title}</span>
-              </Link>
-            ))}
-          </nav>
-          <div className="px-2 mt-2">
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg bg-red-600/80 hover:bg-red-600 text-white text-sm"
-            >
-              <LogOut className="w-4 h-4" /> Logout
-            </button>
-          </div>
-        </aside>
-      )}
+      {/* Sidebar removed – navigation moved to top navbar */}
 
       {/* Mobile Menu Overlay - FIXED */}
       <AnimatePresence>
@@ -473,7 +440,7 @@ const AppShell = ({ currentUser, handleLogout, children, navigateToLanding }) =>
       </AnimatePresence>
       
       {/* MAIN CONTENT - Enhanced Mobile */}
-      <main className={`w-full medical-bg ${isSuperAdmin ? 'lg:pl-64' : ''}`}>
+      <main className={`w-full medical-bg`}>
         <div className="w-full px-2 sm:px-4 lg:px-6 py-2 sm:py-4 lg:py-8">
           <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-3xl shadow-xl border border-white/50 min-h-[calc(100vh-4rem)] sm:min-h-[calc(100vh-6rem)] lg:min-h-[calc(100vh-12rem)] overflow-hidden">
             {children}
