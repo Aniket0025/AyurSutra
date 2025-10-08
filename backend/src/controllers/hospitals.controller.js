@@ -99,23 +99,29 @@ export const getHospitalSummary = async (req, res) => {
     const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
     const endOfToday = new Date(); endOfToday.setHours(23,59,59,999);
 
-    const hid = mongoose.Types.ObjectId(hospitalId);
+    // Support non-ObjectId IDs gracefully to avoid 500 on invalid ObjectId
+    const hid = mongoose.Types.ObjectId.isValid(hospitalId)
+      ? new mongoose.Types.ObjectId(hospitalId)
+      : hospitalId;
 
     const [patientsCount, patientUsersCount, doctorsCount, execsCount, financeAgg, financeAggMTD, patientsMTD, patientUsersMTD, apptTotal, completedMTD, visitsToday] = await Promise.all([
+      // Patients may have hospital_id saved as ObjectId or string
       Patient.countDocuments({ $or: [ { hospital_id: hid }, { hospital_id: String(hid) } ] }),
-      User.countDocuments({ hospital_id: hid, role: 'patient' }),
-      User.countDocuments({ hospital_id: hid, role: 'doctor' }),
-      User.countDocuments({ hospital_id: hid, role: 'office_executive' }),
+      // Users collection: handle both ObjectId and string hospital_id
+      User.countDocuments({ $or: [ { hospital_id: hid }, { hospital_id: String(hid) } ], role: 'patient' }),
+      User.countDocuments({ $or: [ { hospital_id: hid }, { hospital_id: String(hid) } ], role: 'doctor' }),
+      User.countDocuments({ $or: [ { hospital_id: hid }, { hospital_id: String(hid) } ], role: 'office_executive' }),
+      // Finance: also match both types
       FinanceTransaction.aggregate([
-        { $match: { hospital_id: hid } },
+        { $match: { $or: [ { hospital_id: hid }, { hospital_id: String(hid) } ] } },
         { $group: { _id: '$type', total: { $sum: '$amount' } } }
       ]),
       FinanceTransaction.aggregate([
-        { $match: { hospital_id: hid, createdAt: { $gte: firstOfMonth } } },
+        { $match: { $and: [ { $or: [ { hospital_id: hid }, { hospital_id: String(hid) } ] }, { createdAt: { $gte: firstOfMonth } } ] } },
         { $group: { _id: '$type', total: { $sum: '$amount' } } }
       ]),
       Patient.countDocuments({ $or: [ { hospital_id: hid }, { hospital_id: String(hid) } ], createdAt: { $gte: firstOfMonth } }),
-      User.countDocuments({ hospital_id: hid, role: 'patient', createdAt: { $gte: firstOfMonth } }),
+      User.countDocuments({ $or: [ { hospital_id: hid }, { hospital_id: String(hid) } ], role: 'patient', createdAt: { $gte: firstOfMonth } }),
       TherapySession.countDocuments({ $or: [ { hospital_id: hid }, { hospital_id: String(hid) } ] }),
       TherapySession.countDocuments({ $or: [ { hospital_id: hid }, { hospital_id: String(hid) } ], status: 'completed', 'outcomes.completed_at': { $gte: firstOfMonth } }),
       TherapySession.countDocuments({ $or: [ { hospital_id: hid }, { hospital_id: String(hid) } ], scheduled_at: { $gte: startOfToday, $lte: endOfToday }, status: { $ne: 'cancelled' } }),
