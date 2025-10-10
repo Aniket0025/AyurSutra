@@ -47,12 +47,13 @@ export default function AddStaffModal({ isOpen, onClose, onStaffAdded, currentUs
       setIsLoading(false);
       return;
     }
-    if (!formData.email) {
+    if (formData.role !== 'therapist' && !formData.email) {
       setError('Email is required for login.');
       setIsLoading(false);
       return;
     }
-    if (!staffMember) {
+    // For new staff: require password unless role is therapist (therapists won't log in)
+    if (!staffMember && formData.role !== 'therapist') {
       if (!formData.password || String(formData.password).length < 6) {
         setError('Password must be at least 6 characters.');
         setIsLoading(false);
@@ -71,7 +72,8 @@ export default function AddStaffModal({ isOpen, onClose, onStaffAdded, currentUs
         email: formData.email?.trim() || undefined,
         phone: formData.phone?.trim() || undefined,
         department: formData.department?.trim() || undefined,
-        ...(staffMember ? {} : { password: formData.password }),
+        // include password only when creating non-therapist
+        ...(!staffMember && formData.role !== 'therapist' ? { password: formData.password } : {}),
       };
       let resultUser;
       if (staffMember) {
@@ -87,7 +89,11 @@ export default function AddStaffModal({ isOpen, onClose, onStaffAdded, currentUs
       window.showNotification?.({
         type: 'success',
         title: staffMember ? 'Staff Updated' : 'Staff Assigned',
-        message: staffMember ? `${formData.fullName} has been updated.` : `${formData.fullName} has been assigned and can now log in.`,
+        message: staffMember 
+          ? `${formData.fullName} has been updated.` 
+          : (formData.role === 'therapist' 
+              ? `${formData.fullName} (Therapist) has been added to your clinic.` 
+              : `${formData.fullName} has been assigned and can now log in.`),
         autoClose: true,
         duration: 8000,
       });
@@ -127,18 +133,18 @@ export default function AddStaffModal({ isOpen, onClose, onStaffAdded, currentUs
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
-              <input name="fullName" value={formData.fullName} onChange={handleChange} required className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Role *</label>
               <select name="role" value={formData.role} onChange={handleChange} required className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 bg-white">
                 <option value="doctor">Doctor</option>
+                <option value="therapist">Therapist</option>
                 <option value="office_executive">Office Executive</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Email Address (for login) *</label>
-              <input name="email" type="email" value={formData.email} onChange={handleChange} placeholder="doctor@example.com" required className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500" />
+              <label className="block text-sm font-medium text-gray-700 mb-2">Email Address {formData.role !== 'therapist' ? '(for login) *' : '(optional)'}</label>
+              <input name="email" type="email" value={formData.email} onChange={handleChange} placeholder="user@example.com" required={formData.role !== 'therapist'} className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
@@ -148,13 +154,15 @@ export default function AddStaffModal({ isOpen, onClose, onStaffAdded, currentUs
               <label className="block text-sm font-medium text-gray-700 mb-2">Department (optional)</label>
               <input name="department" value={formData.department} onChange={handleChange} placeholder="Panchakarma" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500" />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Password {staffMember ? '(leave blank to keep unchanged)' : '(for login) *'}</label>
-                <input name="password" type="password" value={formData.password} onChange={handleChange} placeholder="•••••••" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500" required={!staffMember} />
+            {formData.role !== 'therapist' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Password {staffMember ? '(leave blank to keep unchanged)' : '(for login) *'}</label>
+                  <input name="password" type="password" value={formData.password} onChange={handleChange} placeholder="•••••••" className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500" required={!staffMember} />
+                </div>
               </div>
-            </div>
-            <p className="text-xs text-gray-500">This staff member will be associated with your hospital: <strong>{currentUser?.hospital_name || `Hospital ID ${currentUser?.hospital_id}`}</strong>. {staffMember ? 'Updating profile details will not change access scope.' : 'They will log in using the provided email and password. Access will be restricted to this hospital.'}</p>
+            )}
+            <p className="text-xs text-gray-500">This staff member will be associated with your hospital: <strong>{currentUser?.hospital_name || `Hospital ID ${currentUser?.hospital_id}`}</strong>. {staffMember ? 'Updating profile details will not change access scope.' : (formData.role === 'therapist' ? 'This therapist will not receive login access.' : 'They will log in using the provided email and password. Access will be restricted to this hospital.')}</p>
           </div>
         </form>
 

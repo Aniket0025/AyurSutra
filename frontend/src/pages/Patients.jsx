@@ -14,10 +14,12 @@ import {
   MoreVertical,
   Heart,
   Phone,
+  FileText,
   
 } from "lucide-react";
 import AddPatientModal from "../components/patients/AddPatientModal";
 import PatientDetailModal from "../components/patients/PatientDetailModal";
+import PrescriptionRecordsModal from "../components/prescriptions/PrescriptionRecordsModal.jsx";
 import BulkUploadModal from "../components/patients/BulkUploadModal";
 
 export default function PatientsPage({ currentUser }) {
@@ -53,6 +55,8 @@ PatientsPage.propTypes = {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [editingPatient, setEditingPatient] = useState(null);
   const [selectedPatientId, setSelectedPatientId] = useState(null);
+  const [showPrescriptionsModal, setShowPrescriptionsModal] = useState(false);
+  const [selectedPatientObj, setSelectedPatientObj] = useState(null);
 
   const loadPatients = useCallback(async () => {
     const user = self;
@@ -146,6 +150,11 @@ PatientsPage.propTypes = {
     setShowDetailModal(true);
   };
 
+  const handleOpenPrescriptions = (patient) => {
+    setSelectedPatientObj(patient);
+    setShowPrescriptionsModal(true);
+  };
+
   const handleEditPatient = (patient) => {
     setEditingPatient(patient);
     setIsAddPatientModalOpen(true); // Changed to new state variable
@@ -209,6 +218,9 @@ PatientsPage.propTypes = {
               <div className="absolute right-0 top-10 bg-white rounded-lg shadow-lg border border-gray-200 py-2 opacity-0 invisible group-hover/actions:opacity-100 group-hover/actions:visible transition-all z-10 min-w-[160px] transform origin-top-right scale-95 group-hover/actions:scale-100">
                 <button onClick={() => onViewDetails(patient.id)} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
                   <Eye className="w-4 h-4" /> View Details & Report
+                </button>
+                <button onClick={() => handleOpenPrescriptions(patient)} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
+                  <FileText className="w-4 h-4" /> Prescriptions & Records
                 </button>
                 <button onClick={() => onEdit(patient)} className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2">
                   <Edit className="w-4 h-4" /> Edit Patient
@@ -415,6 +427,13 @@ PatientsPage.propTypes = {
         onClose={() => setShowDetailModal(false)}
         patientId={selectedPatientId}
         onEditPatient={handleEditPatient}
+      />
+
+      <PrescriptionRecordsModal
+        isOpen={showPrescriptionsModal}
+        onClose={() => setShowPrescriptionsModal(false)}
+        patient={selectedPatientObj}
+        currentUser={self}
       />
 
       <BulkUploadModal
