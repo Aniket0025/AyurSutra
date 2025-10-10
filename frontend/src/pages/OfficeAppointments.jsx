@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { User, Hospital, Patient, Appointments } from '@/services';
+import { User, Hospital, Patient, Appointments, Prescription } from '@/services';
 import { Calendar as CalendarIcon } from 'lucide-react';
 
 export default function OfficeAppointments({ currentUser }) {
@@ -11,6 +11,7 @@ export default function OfficeAppointments({ currentUser }) {
   const [showAddPatient, setShowAddPatient] = useState(false);
   const [newPatient, setNewPatient] = useState({ full_name: '', phone: '', gender: '', address: '' });
   const [creatingPatient, setCreatingPatient] = useState(false);
+  const [prescriptions, setPrescriptions] = useState([]);
 
   useEffect(() => { (async () => { if (!me) setMe(await User.me().catch(()=>null)); })(); }, [me]);
 
@@ -30,6 +31,19 @@ export default function OfficeAppointments({ currentUser }) {
       }
     })();
   }, [me]);
+
+  // Load prescriptions for selected patient from backend
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!form.patientId) { setPrescriptions([]); return; }
+        const list = await Prescription.list({ patient_id: form.patientId });
+        setPrescriptions(Array.isArray(list) ? list : []);
+      } catch {
+        setPrescriptions([]);
+      }
+    })();
+  }, [form.patientId]);
 
   const handleBook = async (e) => {
     e?.preventDefault?.();
@@ -167,6 +181,46 @@ export default function OfficeAppointments({ currentUser }) {
             <button type="submit" disabled={busy} className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-green-600 text-white disabled:opacity-50">{busy ? 'Booking...' : 'Book Appointment'}</button>
           </div>
         </form>
+      </div>
+
+      {/* Prescription & Records (Read-only for selected patient) */}
+      <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-4 md:p-6 shadow-xl border border-white/50 mt-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base md:text-lg font-semibold text-gray-800">Prescription & Records</h2>
+          <div className="text-sm text-gray-500">{prescriptions.length} total</div>
+        </div>
+        {(!form.patientId) && (
+          <div className="text-sm text-gray-500">Select a patient to view their prescriptions.</div>
+        )}
+        {(form.patientId && prescriptions.length === 0) && (
+          <div className="text-sm text-gray-500">No prescriptions found for this patient.</div>
+        )}
+        {form.patientId && prescriptions.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="text-left text-gray-500">
+                  <th className="py-2 pr-4">Date</th>
+                  <th className="py-2 pr-4">Doctor</th>
+                  <th className="py-2 pr-4">Complaints</th>
+                  <th className="py-2 pr-4">Medicines</th>
+                  <th className="py-2 pr-4">Therapies</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {prescriptions.map((p, idx) => (
+                  <tr key={p.id || idx}>
+                    <td className="py-2 pr-4">{new Date(p.date || p.created_at).toLocaleDateString()}</td>
+                    <td className="py-2 pr-4">{p.doctor_name || '-'}</td>
+                    <td className="py-2 pr-4">{p.complaints || '-'}</td>
+                    <td className="py-2 pr-4">{(p.meds||[]).map(m=>m.name).filter(Boolean).join(', ')}</td>
+                    <td className="py-2 pr-4">{(p.therapies||[]).map(t=>t.name).filter(Boolean).join(', ')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

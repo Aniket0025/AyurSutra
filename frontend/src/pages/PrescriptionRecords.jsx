@@ -1,14 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ClipboardPlus, Download, FileText, Printer, Search, Trash2 } from 'lucide-react';
-import { User, Patient } from '@/services';
+import { User, Patient, Prescription } from '@/services';
 
-// local persistence helpers
-const STORAGE_KEY = 'ayursutra_prescriptions_v1';
-function loadAll() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; }
-}
-function saveAll(items) { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
+// backend persistence via Prescription service
 
 export default function PrescriptionRecords() {
   const [me, setMe] = useState(null);
@@ -18,6 +13,8 @@ export default function PrescriptionRecords() {
   const [selectedPatientId, setSelectedPatientId] = useState('');
   const [selectedPatientName, setSelectedPatientName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [records, setRecords] = useState([]);
+  const canWrite = role === 'doctor' || role === 'clinic_admin' || role === 'super_admin' || role === 'office_executive';
 
   // form state (includes Panchakarma-specific fields)
   const [form, setForm] = useState({
@@ -25,6 +22,7 @@ export default function PrescriptionRecords() {
     complaints: '',
     advice: '',
     meds: [ { name: '', dosage: '', frequency: '', duration: '' } ],
+    therapies: [ { name: '', duration: '', frequency: '' } ],
     pk_plan: {
       procedures: '', // e.g., Abhyanga, Swedana
       oils: '',       // e.g., Dashmool Taila
@@ -56,18 +54,16 @@ export default function PrescriptionRecords() {
           setSelectedPatientId(u?.id || u?._id || '');
           setSelectedPatientName(u?.full_name || u?.name || 'You');
         } else {
-          // Pull from real DB using Patient service, then prefer doctor-assigned subset
+          // Load from Patient Management records, clinic-scoped by backend
           let pts = [];
           try {
-            if (Patient && typeof Patient.list === 'function') {
+            if (Patient && typeof Patient.withRecords === 'function') {
+              pts = await Patient.withRecords({});
+            } else if (Patient && typeof Patient.list === 'function') {
               pts = await Patient.list();
             }
-          } catch (e) { console.warn('PrescriptionRecords: Patient.list failed', e); }
-          const myId = u?.id || u?._id;
-          const hospId = u?.hospital_id;
-          const filtered = (pts || []).filter(p => (!hospId || p.hospital_id === hospId) && (!myId || p.assigned_doctor_id === myId || p.assigned_doctor === (u?.full_name || u?.name)));
-          const pool = filtered.length ? filtered : pts;
-          const mapped = (pool || []).map(p => ({ id: p.id || p._id, name: p.full_name || p.name || 'Patient', email: p.email }));
+          } catch (e) { console.warn('PrescriptionRecords: loading patients failed', e); }
+          const mapped = (pts || []).map(p => ({ id: p.id || p._id, name: p.full_name || p.name || 'Patient', email: p.email }));
           setPatientOptions(mapped);
           // If only one patient, auto-select
           if (mapped.length === 1) { setSelectedPatientId(mapped[0].id); setSelectedPatientName(mapped[0].name); }
@@ -99,12 +95,7 @@ export default function PrescriptionRecords() {
       try {
         if (Patient && typeof Patient.filter === 'function') {
           const res = await Patient.filter({ name: q });
-          // Prefer doctor-assigned
-          const myId = me?.id || me?._id;
-          const hospId = me?.hospital_id;
-          const preferred = (res || []).filter(p => (!hospId || p.hospital_id === hospId) && (p.assigned_doctor_id === myId || p.assigned_doctor === (me?.full_name || me?.name)));
-          const pool = preferred.length ? preferred : res;
-          const mapped = (pool || []).map(p => ({ id: p.id || p._id, name: p.full_name || p.name || 'Patient', email: p.email }));
+          const mapped = (res || []).map(p => ({ id: p.id || p._id, name: p.full_name || p.name || 'Patient', email: p.email }));
           setPatientOptions(mapped);
         }
       } catch (e) { console.warn('PrescriptionRecords: Patient.filter failed', e); }
@@ -113,41 +104,105 @@ export default function PrescriptionRecords() {
     return () => clearTimeout(t);
   }, [patientSearch]);
 
-  const all = loadAll();
-  const scoped = useMemo(() => {
-    return all.filter(p => (!me?.hospital_id || p.hospital_id === me.hospital_id) && (!selectedPatientId || p.patient_id === selectedPatientId));
-  }, [all, me?.hospital_id, selectedPatientId]);
+  // Fetch prescription records from backend when patient/user changes
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        const q = {};
+        if (selectedPatientId) q.patient_id = selectedPatientId;
+        const list = await Prescription.list(q);
+        setRecords(Array.isArray(list) ? list : []);
+      } catch (e) {
+        console.warn('Load prescriptions failed', e);
+        setRecords([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [selectedPatientId, me?.hospital_id]);
 
-  const canWrite = role === 'doctor' || role === 'clinic_admin' || role === 'super_admin';
+  // One-time migration from localStorage to backend if needed
+  useEffect(() => {
+    (async () => {
+      if (!canWrite) return;
+      try {
+        const migrated = sessionStorage.getItem('ayursutra_prescriptions_migrated');
+        if (migrated === '1') return;
+        if (records.length > 0) return; // already have data in DB
+        const raw = localStorage.getItem('ayursutra_prescriptions_v1');
+        const local = JSON.parse(raw || '[]');
+        const items = Array.isArray(local) ? local : [];
+        const mine = me?.hospital_id ? items.filter(x => x.hospital_id === me.hospital_id) : items;
+        if (mine.length === 0) return;
+        // Migrate up to 50 recent entries to avoid long operations
+        const batch = mine.slice(0, 50);
+        for (const entry of batch) {
+          try {
+            await Prescription.create({
+              date: entry.date || entry.created_at,
+              complaints: entry.complaints,
+              advice: entry.advice,
+              meds: Array.isArray(entry.meds) ? entry.meds : [],
+              therapies: Array.isArray(entry.therapies) ? entry.therapies : [],
+              patient_id: entry.patient_id,
+              patient_name: entry.patient_name,
+            });
+          } catch (e) { /* ignore individual failure */ }
+        }
+        sessionStorage.setItem('ayursutra_prescriptions_migrated', '1');
+        const q = selectedPatientId ? { patient_id: selectedPatientId } : {};
+        const list = await Prescription.list(q);
+        setRecords(Array.isArray(list) ? list : []);
+      } catch { /* ignore */ }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [records.length, canWrite, selectedPatientId, me?.hospital_id]);
+
+  
 
   const addMedRow = () => setForm(f => ({ ...f, meds: [...f.meds, { name: '', dosage: '', frequency: '', duration: '' }] }));
   const removeMedRow = (i) => setForm(f => ({ ...f, meds: f.meds.filter((_, idx) => idx !== i) }));
   const updateMed = (i, key, val) => setForm(f => ({ ...f, meds: f.meds.map((m, idx) => idx===i? { ...m, [key]: val } : m) }));
 
-  const handleSave = () => {
+  // Therapies dynamic rows
+  const addTherapyRow = () => setForm(f => ({ ...f, therapies: [...(f.therapies||[]), { name: '', duration: '', frequency: '' }] }));
+  const removeTherapyRow = (i) => setForm(f => ({ ...f, therapies: (f.therapies||[]).filter((_, idx) => idx !== i) }));
+  const updateTherapy = (i, key, val) => setForm(f => ({ ...f, therapies: (f.therapies||[]).map((t, idx) => idx===i? { ...t, [key]: val } : t) }));
+
+  const handleSave = async () => {
     if (!selectedPatientId) { window.showNotification?.({ type: 'error', title: 'Prescription', message: 'Select a patient first.' }); return; }
-    const entry = {
-      id: crypto.randomUUID(),
-      hospital_id: me?.hospital_id,
-      patient_id: selectedPatientId,
-      patient_name: selectedPatientName,
-      doctor_id: me?.id || me?._id,
-      doctor_name: me?.full_name || me?.name,
-      created_at: new Date().toISOString(),
-      ...form,
-    };
-    const items = loadAll();
-    items.unshift(entry);
-    saveAll(items);
-    window.showNotification?.({ type: 'success', title: 'Prescription', message: 'Saved successfully.' });
-    // reset minimal
-    setForm({ date: new Date().toISOString().slice(0,10), complaints: '', advice: '', meds: [ { name: '', dosage: '', frequency: '', duration: '' } ] });
+    try {
+      setLoading(true);
+      await Prescription.create({
+        date: form.date,
+        complaints: form.complaints,
+        advice: form.advice,
+        meds: form.meds,
+        therapies: form.therapies,
+        patient_id: selectedPatientId,
+        patient_name: selectedPatientName,
+      });
+      window.showNotification?.({ type: 'success', title: 'Prescription', message: 'Saved successfully.' });
+      setForm({ date: new Date().toISOString().slice(0,10), complaints: '', advice: '', meds: [ { name: '', dosage: '', frequency: '', duration: '' } ], therapies: [ { name: '', duration: '', frequency: '' } ] });
+      const list = await Prescription.list(selectedPatientId ? { patient_id: selectedPatientId } : {});
+      setRecords(Array.isArray(list) ? list : []);
+    } catch (e) {
+      window.showNotification?.({ type: 'error', title: 'Prescription', message: e?.message || 'Failed to save' });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const deleteEntry = (id) => {
-    const items = loadAll().filter(p => p.id !== id);
-    saveAll(items);
-    window.showNotification?.({ type: 'success', title: 'Prescription', message: 'Deleted.' });
+  const deleteEntry = async (id) => {
+    try {
+      await Prescription.delete(id);
+      const list = await Prescription.list(selectedPatientId ? { patient_id: selectedPatientId } : {});
+      setRecords(Array.isArray(list) ? list : []);
+      window.showNotification?.({ type: 'success', title: 'Prescription', message: 'Deleted.' });
+    } catch (e) {
+      window.showNotification?.({ type: 'error', title: 'Prescription', message: e?.message || 'Delete failed' });
+    }
   };
 
   const printEntry = (entry) => {
@@ -161,7 +216,7 @@ export default function PrescriptionRecords() {
       th,td{border:1px solid #e5e7eb;padding:8px;text-align:left}
     </style></head><body>`);
     doc.document.write(`<h1>Prescription</h1>
-      <div class="muted">${new Date(entry.date || entry.created_at).toLocaleString()}</div>
+      <div class="muted">${new Date(entry.date || entry.created_at || entry.createdAt).toLocaleString()}</div>
       <div><strong>Patient:</strong> ${entry.patient_name || entry.patient_id}</div>
       <div><strong>Doctor:</strong> ${entry.doctor_name || ''}</div>
       <hr/>
@@ -169,6 +224,13 @@ export default function PrescriptionRecords() {
       <div style="margin-top:8px"><strong>Advice:</strong><br/>${(entry.advice||'').replace(/\n/g,'<br/>')}</div>
       <table><thead><tr><th>Medicine</th><th>Dosage</th><th>Frequency</th><th>Duration</th></tr></thead>
       <tbody>${(entry.meds||[]).map(m=>`<tr><td>${m.name||''}</td><td>${m.dosage||''}</td><td>${m.frequency||''}</td><td>${m.duration||''}</td></tr>`).join('')}</tbody></table>`);
+    // Therapies table
+    if ((entry.therapies||[]).length) {
+      doc.document.write('<h2 style="margin-top:12px">Therapies</h2>');
+      doc.document.write('<table><thead><tr><th>Therapy</th><th>Duration</th><th>Frequency</th></tr></thead><tbody>');
+      doc.document.write((entry.therapies||[]).map(t=>`<tr><td>${t.name||''}</td><td>${t.duration||''}</td><td>${t.frequency||''}</td></tr>`).join(''));
+      doc.document.write('</tbody></table>');
+    }
     doc.document.write('</body></html>');
     doc.document.close();
     doc.focus();
@@ -222,7 +284,7 @@ export default function PrescriptionRecords() {
                     return (p.name||'').toLowerCase().includes(q) || String(p.id||'').toLowerCase().includes(q);
                   })
                   .map(p => (
-                    <option key={p.id} value={p.id}>{p.name} — {String(p.id).slice(-6)}</option>
+                    <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
               </select>
             </div>
@@ -248,6 +310,22 @@ export default function PrescriptionRecords() {
               <input className="w-full px-3 py-2 border rounded-lg" value={form.complaints} onChange={e=>setForm(f=>({...f, complaints:e.target.value}))} placeholder="e.g., lower back pain, headache" />
             </div>
           </div>
+          {/* Therapies first for visibility */}
+          <div className="mt-3">
+            <label className="text-xs text-gray-500">Therapies</label>
+            <div className="space-y-2">
+              {(form.therapies||[]).map((t,i)=> (
+                <div key={i} className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <input className="px-3 py-2 border rounded-lg" placeholder="Therapy Name" value={t.name} onChange={e=>updateTherapy(i,'name',e.target.value)} />
+                  <input className="px-3 py-2 border rounded-lg" placeholder="Duration (e.g., 45 min / 10 days)" value={t.duration} onChange={e=>updateTherapy(i,'duration',e.target.value)} />
+                  <input className="px-3 py-2 border rounded-lg" placeholder="Frequency (e.g., 2x/day)" value={t.frequency} onChange={e=>updateTherapy(i,'frequency',e.target.value)} />
+                  <button className="px-3 py-2 rounded-lg border hover:bg-gray-50" onClick={()=>removeTherapyRow(i)}><Trash2 className="w-4 h-4"/></button>
+                </div>
+              ))}
+              <button className="px-3 py-1.5 rounded-md border" onClick={addTherapyRow}>+ Add therapy</button>
+            </div>
+          </div>
+          {/* Medicines after therapies */}
           <div className="mt-3">
             <label className="text-xs text-gray-500">Medicines</label>
             <div className="space-y-2">
@@ -274,11 +352,11 @@ export default function PrescriptionRecords() {
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold">Records</h2>
-          <div className="text-sm text-gray-500">{scoped.length} total</div>
+          <div className="text-sm text-gray-500">{records.length} total</div>
         </div>
         {loading ? (
           <div className="text-sm text-gray-500">Loading...</div>
-        ) : scoped.length === 0 ? (
+        ) : records.length === 0 ? (
           <div className="text-sm text-gray-500">No records found.</div>
         ) : (
           <div className="overflow-x-auto">
@@ -290,17 +368,19 @@ export default function PrescriptionRecords() {
                   <th className="py-2 pr-4">Doctor</th>
                   <th className="py-2 pr-4">Complaints</th>
                   <th className="py-2 pr-4">Medicines</th>
+                  <th className="py-2 pr-4">Therapies</th>
                   <th className="py-2 pr-4">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {scoped.map((p)=> (
+                {records.map((p)=> (
                   <tr key={p.id}>
-                    <td className="py-2 pr-4">{new Date(p.date || p.created_at).toLocaleDateString()}</td>
-                    <td className="py-2 pr-4">{p.patient_name || p.patient_id}</td>
+                    <td className="py-2 pr-4">{new Date(p.date || p.created_at || p.createdAt).toLocaleDateString()}</td>
+                    <td className="py-2 pr-4">{p.patient_name || 'Patient'}</td>
                     <td className="py-2 pr-4">{p.doctor_name || '-'}</td>
                     <td className="py-2 pr-4">{p.complaints || '-'}</td>
                     <td className="py-2 pr-4">{(p.meds||[]).map(m=>m.name).filter(Boolean).join(', ')}</td>
+                    <td className="py-2 pr-4">{(p.therapies||[]).map(t=>t.name).filter(Boolean).join(', ')}</td>
                     <td className="py-2 pr-4 flex items-center gap-2">
                       <button className="px-2 py-1 rounded-md border" onClick={()=>printEntry(p)} title="Print"><Printer className="w-4 h-4"/></button>
                       <button className="px-2 py-1 rounded-md border" onClick={()=>printEntry(p)} title="Download"><Download className="w-4 h-4"/></button>

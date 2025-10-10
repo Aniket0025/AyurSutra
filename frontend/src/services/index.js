@@ -287,6 +287,23 @@ export const Appointments = {
   },
 };
 
+// Prescriptions API client
+export const Prescription = {
+  async list(query = {}) {
+    const qs = new URLSearchParams(query).toString();
+    const data = await api(`/api/prescriptions${qs ? `?${qs}` : ''}`);
+    return (data?.prescriptions || []).map(normalizeId);
+  },
+  async create(payload) {
+    const data = await api('/api/prescriptions', { method: 'POST', body: payload });
+    return normalizeId(data?.prescription || data);
+  },
+  async delete(id) {
+    await api(`/api/prescriptions/${id}`, { method: 'DELETE' });
+    return true;
+  },
+};
+
 // Stubs kept for compile-time imports that may exist elsewhere
 export const Feedback = { list: async () => [], filter: async () => [], create: async () => ({}), update: async () => ({}), delete: async () => ({}) };
 export const Notification = { list: async () => [], filter: async () => [], create: async () => ({}), update: async () => ({}), delete: async () => ({}) };

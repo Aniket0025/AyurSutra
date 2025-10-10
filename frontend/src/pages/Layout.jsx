@@ -57,6 +57,7 @@ const officeExecutiveNavItems = [
   { title: "Patient Registration", url: "Patients", icon: Users },
   { title: "Appointments", url: "OfficeAppointments", icon: Calendar },
   { title: "Therapy Scheduling", url: "TherapyScheduling", icon: Calendar },
+  { title: "Prescription & Records", url: "PrescriptionRecords", icon: FileText },
   { title: "Settings", url: "Settings", icon: Settings },
 ];
 

@@ -11,6 +11,7 @@ import notificationRoutes from './routes/notifications.routes.js';
 import reportRoutes from './routes/reports.routes.js';
 import appointmentRoutes from './routes/appointments.routes.js';
 import superAdminRoutes from './routes/superadmin.routes.js';
+import prescriptionRoutes from './routes/prescriptions.routes.js';
 
 // Load env before reading process.env in this module
 dotenv.config();
@@ -75,6 +76,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/superadmin', superAdminRoutes);
+app.use('/api/prescriptions', prescriptionRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
