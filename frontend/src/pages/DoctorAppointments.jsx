@@ -139,7 +139,7 @@ function Section({ title, items, empty, patientMap }) {
           <div key={a.id} className="bg-white rounded-2xl p-4 border border-gray-100">
             <div className="flex items-center justify-between">
               <div className="font-medium text-gray-900 flex items-center gap-2">
-                <Users className="w-4 h-4" /> Patient: {patientMap?.[String(a.patient_id)] || String(a.patient_id)}
+                <Users className="w-4 h-4" /> Patient: {a.patient_name || patientMap?.[String(a.patient_id)] || String(a.patient_id)}
               </div>
               <div className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700 capitalize">{a.status}</div>
             </div>

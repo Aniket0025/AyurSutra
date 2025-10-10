@@ -59,19 +59,11 @@ PatientsPage.propTypes = {
     if (!user) return;
     setIsLoading(true);
     try {
-      let patientFilter = {};
-      if (user.role === 'clinic_admin') {
-        patientFilter = { hospital_id: user.hospital_id };
-      }
-      
       // Fetch patients with records (appointment_count, last_appointment)
-      const patientsData = await Patient.withRecords(patientFilter);
-      // Scope to doctor's own patients if role is doctor
-      const scopedPatients = user.role === 'doctor'
-        ? patientsData.filter(p => (p.assigned_doctor || '').toLowerCase() === (user.full_name || '').toLowerCase())
-        : patientsData;
-      setAllPatients(scopedPatients);
-      setFilteredPatients(scopedPatients);
+      // Backend already scopes non-super users to their hospital, so fetch as-is
+      const patientsData = await Patient.withRecords({});
+      setAllPatients(patientsData);
+      setFilteredPatients(patientsData);
       
     } catch (error) {
       console.error("Failed to load data:", error);

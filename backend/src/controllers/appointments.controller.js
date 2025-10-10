@@ -116,7 +116,34 @@ export const listMyStaffAppointments = async (req, res) => {
       return res.status(403).json({ message: 'Forbidden' });
     }
     const appts = await Appointment.find({ staff_id: userId }).sort({ start_time: 1 });
-    res.json({ appointments: appts });
+
+    // Enrich with patient_name for reliable display on doctor side
+    const enriched = await Promise.all(appts.map(async (a) => {
+      let name;
+      try {
+        // First try: patient record linked by user_id within same hospital
+        const pByUser = await Patient.findOne({ user_id: a.patient_id, hospital_id: a.hospital_id }).lean();
+        if (pByUser) name = pByUser.full_name || pByUser.name;
+      } catch {}
+      if (!name) {
+        try {
+          // If patient_id actually refers to a patient record id
+          const pById = await Patient.findById(a.patient_id).lean();
+          if (pById) name = pById.full_name || pById.name;
+        } catch {}
+      }
+      if (!name) {
+        try {
+          // Fallback to the user profile
+          const u = await User.findById(a.patient_id).lean();
+          if (u) name = u.full_name || u.name || u.username || u.email;
+        } catch {}
+      }
+      const obj = a.toObject ? a.toObject() : a;
+      return { ...obj, patient_name: name };
+    }));
+
+    res.json({ appointments: enriched });
   } catch (e) {
     console.error('listMyStaffAppointments error:', e);
     res.status(500).json({ message: 'Server error' });
